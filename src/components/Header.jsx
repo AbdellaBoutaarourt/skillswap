@@ -4,7 +4,7 @@ import logo from "../assets/logo.png";
 const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   return (
-    <header className="bg-[#0a1218] flex items-center justify-between px-6 py-2 border-b border-white font-poppins relative">
+    <header className=" flex items-center justify-between px-6 py-2 border-b border-white font-poppins relative">
       <div className="flex items-center space-x-2">
         <img src={logo} alt="Logo" />
       </div>
@@ -27,7 +27,7 @@ const Header = () => {
         <a href="#" className="text-white hover:text-secondary font-medium border-b-2 border-transparent hover:border-white transition-all duration-150 text-lg">
           Explore
         </a>
-        <button className="bg-button hover:bg-[#1977c7] cursor-pointer text-white px-5 py-1.5 rounded-xl font-semibold focus:outline-none transition text-lg">
+        <button className="bg-button hover:bg-blue-700 cursor-pointer text-white px-5 py-1.5 rounded-lg font-semibold focus:outline-none transition text-lg">
           Sign In
         </button>
       </nav>
@@ -53,7 +53,7 @@ const Header = () => {
           <a href="#" className="text-white hover:text-secondary font-medium border-b-2 border-transparent hover:border-white transition-all duration-150 text-lg" onClick={() => setMenuOpen(false)}>
             Explore
           </a>
-          <button className="bg-button hover:bg-[#1977c7] cursor-pointer text-white px-5 py-1.5 rounded-xl font-semibold focus:outline-none transition text-lg" onClick={() => setMenuOpen(false)}>
+          <button className="bg-button hover:bg-blue-700 cursor-pointer text-white px-5 py-1.5 rounded-lg font-semibold focus:outline-none transition text-lg" onClick={() => setMenuOpen(false)}>
             Sign In
           </button>
         </div>
