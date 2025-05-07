@@ -1,1 +1,24 @@
 @import "tailwindcss";
+
+
+@layer base {
+  body {
+    margin: 0;
+    padding: 0;
+  }
+}
+
+@layer utilities {
+  .bg-primary {
+    background-color: #111B23;
+  }
+  .bg-button {
+    background-color: #2194F2;
+  }
+  .text-button {
+    color: #2194F2;
+  }
+  .border-button {
+    border-color: #2194F2;
+  }
+}
