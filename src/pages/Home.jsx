@@ -27,7 +27,7 @@ const Home = () => {
 
   return (
     <div className=" text-white p-0 mt-3 mx-5">
-      {/* Hero Section */}
+
       <section className="w-full flex flex-col items-center" data-aos="fade-up">
         <div className="relative w-full max-w-4xl rounded-2xl overflow-hidden shadow-lg">
           <img
@@ -57,7 +57,6 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Popular Skills Section */}
       <section className="max-w-5xl mx-auto mt-12" data-aos="fade-up">
         <div className="flex items-center justify-between mb-2">
           <div>
@@ -79,7 +78,6 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Skill Matchups Explanation */}
       <section className="max-w-5xl mx-auto mt-14" data-aos="fade-up">
         <div className="flex flex-col md:flex-row items-center justify-between bg-[#181f25] rounded-xl p-8 shadow mb-6">
           <div className="flex-1 mb-4 md:mb-0 md:mr-8">
@@ -93,7 +91,6 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Featured Users */}
       <section className="max-w-5xl mx-auto mt-14" data-aos="fade-up">
         <div className="mb-4">
           <h3 className="text-2xl md:text-3xl font-bold">🌟 Featured Users / Top Contributors</h3>
@@ -120,10 +117,9 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Call to Action Section */}
       <section className="max-w-4xl mx-auto mt-16 mb-8 text-center" data-aos="fade-up">
         <hr className="border-gray-600 mb-8" />
-        <h3 className="text-2xl md:text-3xl font-bold mb-6">Start learning new skills with SkillQuests</h3>
+        <h3 className="text-2xl md:text-3xl font-bold mb-6">Start your skill exchange journey now</h3>
         <button className="bg-button hover:bg-[#1977c7] text-white px-6 py-2 rounded-lg font-semibold text-lg cursor-pointer transition-transform duration-150 hover:scale-105 hover:shadow-lg active:scale-95">Start learning</button>
       </section>
     </div>

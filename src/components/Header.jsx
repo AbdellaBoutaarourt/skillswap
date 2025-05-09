@@ -1,5 +1,6 @@
 import { useState } from "react";
 import logo from "../assets/logo.png";
+import { Link } from "react-router-dom";
 
 const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -19,24 +20,21 @@ const Header = () => {
           </svg>
         </button>
       )}
-      {/* Desktop nav */}
       <nav className="hidden md:flex items-center space-x-6">
-        <a href="#" className="text-white hover:text-secondary font-medium border-b-2 border-transparent hover:border-white transition-all duration-150 text-lg">
+        <Link to="/" className="text-white hover:text-secondary font-medium border-b-2 border-transparent hover:border-white transition-all duration-150 text-lg">
           Home
-        </a>
+        </Link>
         <a href="#" className="text-white hover:text-secondary font-medium border-b-2 border-transparent hover:border-white transition-all duration-150 text-lg">
           Explore
         </a>
-        <button className="bg-button hover:bg-blue-700 cursor-pointer text-white px-5 py-1.5 rounded-lg font-semibold focus:outline-none transition text-lg">
+        <Link to="/login" className="bg-button hover:bg-blue-700 text-white px-5 py-1.5 rounded-lg font-semibold focus:outline-none transition text-lg cursor-pointer">
           Sign In
-        </button>
+        </Link>
       </nav>
-      {/* Mobile menu slide-in */}
       <div
         className={`fixed top-0 right-0 h-full w-3/4 max-w-xs bg-[#0a1218] p-6 flex flex-col space-y-6 shadow-lg z-30 transform transition-transform duration-300 md:hidden ${menuOpen ? 'translate-x-0' : 'translate-x-full'}`}
         style={{ willChange: 'transform' }}
       >
-        {/* Close button menu */}
         <button
           className="absolute top-4 right-4 text-white z-40 cursor-pointer"
           onClick={() => setMenuOpen(false)}
@@ -47,15 +45,15 @@ const Header = () => {
           </svg>
         </button>
         <div className="mt-12 flex flex-col space-y-6">
-          <a href="#" className="text-white hover:text-secondary font-medium border-b-2 border-transparent hover:border-white transition-all duration-150 text-lg" onClick={() => setMenuOpen(false)}>
+          <Link to="/" className="text-white hover:text-secondary font-medium border-b-2 border-transparent hover:border-white transition-all duration-150 text-lg" onClick={() => setMenuOpen(false)}>
             Home
-          </a>
+          </Link>
           <a href="#" className="text-white hover:text-secondary font-medium border-b-2 border-transparent hover:border-white transition-all duration-150 text-lg" onClick={() => setMenuOpen(false)}>
             Explore
           </a>
-          <button className="bg-button hover:bg-blue-700 cursor-pointer text-white px-5 py-1.5 rounded-lg font-semibold focus:outline-none transition text-lg" onClick={() => setMenuOpen(false)}>
+          <Link to="/login" className="bg-button hover:bg-blue-700 cursor-pointer text-white px-5 py-1.5 rounded-lg font-semibold focus:outline-none transition text-lg" onClick={() => setMenuOpen(false)}>
             Sign In
-          </button>
+          </Link>
         </div>
       </div>
     </header>
