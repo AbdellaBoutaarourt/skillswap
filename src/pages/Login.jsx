@@ -3,6 +3,7 @@ import logo from '../assets/logo.png';
 import loginImg from '../assets/Login.png';
 import connectImg from '../assets/connect.jpg';
 import progressImg from '../assets/matshup.jpg';
+import { Link } from "react-router-dom";
 
 const Login = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -95,9 +96,9 @@ const Login = () => {
 
           <p className="mt-6 md:mt-8 text-center text-gray-400 text-base md:text-lg">
             Don&apos;t have an account?{' '}
-            <a href="#" className="text-blue-400 hover:text-blue-300 font-medium">
+            <Link to="/signup" className="text-blue-400 hover:text-blue-300 font-medium">
               Sign up
-            </a>
+            </Link>
           </p>
         </div>
 

@@ -7,6 +7,7 @@ import AOS from 'aos';
 import 'aos/dist/aos.css';
 import Footer from "./components/Footer";
 import Explore from "./pages/Explore";
+import SignUp from "./pages/SignUp";
 
 const App = () => {
   useEffect(() => {
@@ -15,15 +16,16 @@ const App = () => {
 
   return (
     <BrowserRouter>
-      <div className="  bg-primary m-0 p-0">
-        <Header />
+    <div className="  bg-primary m-0 p-0">
+      <Header />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/explore" element={<Explore />} />
+          <Route path="/signup" element={<SignUp />} />
         </Routes>
         <Footer />
-      </div>
+    </div>
     </BrowserRouter>
   );
 };
