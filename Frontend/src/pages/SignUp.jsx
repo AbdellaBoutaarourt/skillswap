@@ -3,6 +3,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { DatePickerWithRange } from "@/components/datePickerRange";
 import PropTypes from "prop-types";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const steps = [
   "Basic Info",
@@ -178,6 +180,7 @@ MultiSelect.propTypes = {
 };
 
 export default function SignUp() {
+  const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState({
     firstName: "",
@@ -197,8 +200,8 @@ export default function SignUp() {
   });
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef();
-
 
   function validateStep1() {
     const newErrors = {};
@@ -227,7 +230,6 @@ export default function SignUp() {
     return Object.keys(newErrors).length === 0;
   }
 
-
   function handleNext() {
     if (step === 0 && !validateStep1()) return;
     if (step === 1 && !validateStep2()) return;
@@ -249,12 +251,47 @@ export default function SignUp() {
       setForm({ ...form, avatar: file, avatarUrl: URL.createObjectURL(file) });
     }
   }
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     if (!validateStep3()) return;
-    setSubmitted(true);
-  }
 
+    setIsLoading(true);
+    try {
+      const formData = {
+        email: form.email,
+        password: form.password,
+        username: form.username,
+        firstName: form.firstName,
+        lastName: form.lastName,
+        location: form.location,
+        bio: form.bio,
+        skills: form.skills,
+        learning: form.learning,
+        availability: [
+          new Date(form.availability.from).toISOString().split("T")[0],
+          new Date(form.availability.to).toISOString().split("T")[0]
+        ],
+        social: form.social
+      };
+      console.log(formData);
+
+      const response = await axios.post('http://localhost:5000/users/signup', formData);
+
+      if (response.data) {
+        setSubmitted(true);
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Signup error:', error);
+      setErrors({
+        submit: error.response?.data?.error || 'An error occurred during signup'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-primary p-4">
@@ -270,7 +307,9 @@ export default function SignUp() {
         </div>
         <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">🔐 Sign Up Details</h2>
         {submitted ? (
-          <div className="text-green-400 text-center py-12 text-xl font-semibold">Registration successful! 🎉<br/>You can now log in.</div>
+          <div className="text-green-400 text-center py-12 text-xl font-semibold">
+            Registration successful! 🎉<br/>Redirecting to login...
+          </div>
         ) : (
         <>
         {step === 0 && (
@@ -332,9 +371,6 @@ export default function SignUp() {
           </form>
         )}
         {step === 2 && (
-          submitted ? (
-            <div className="text-green-400 text-center py-12 text-xl font-semibold">Registration successful! 🎉<br/>You can now log in.</div>
-          ) : (
           <form className="space-y-5" onSubmit={handleSubmit}>
             <MultiSelect
               label="👨‍🎓 Which skills do you offer?"
@@ -360,12 +396,20 @@ export default function SignUp() {
               <label className="block text-sm font-medium mb-1 text-white">Social media / portfolio link <span className="text-xs text-gray-400">(optional)</span></label>
               <Input name="social" value={form.social} onChange={handleChange} placeholder="e.g. LinkedIn, GitHub, website..." className="bg-[#232b32] text-white" />
             </div>
+            {errors.submit && (
+              <div className="text-red-400 text-sm">{errors.submit}</div>
+            )}
             <div className="flex justify-between gap-2 pt-4">
               <Button type="button" onClick={handlePrev} className="bg-gray-700 text-white">← Previous</Button>
-              <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-6">Sign Up</Button>
+              <Button
+                type="submit"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6"
+                disabled={isLoading}
+              >
+                {isLoading ? 'Signing up...' : 'Sign Up'}
+              </Button>
             </div>
           </form>
-          )
         )}
         </>
         )}

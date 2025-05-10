@@ -8,17 +8,15 @@ const skillRoutes = require('./routes/skillRoutes');
 
 const app = express();
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Supabase configuration
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_ANON_KEY;
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-app.use('/api/users', userRoutes);
-app.use('/api/skills', skillRoutes);
+app.use('/users', userRoutes);
+app.use('/skills', skillRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'Welcome to SkillSwap API' });

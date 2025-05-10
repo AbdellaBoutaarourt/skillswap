@@ -41,19 +41,30 @@ npm start
 ## API Endpoints
 
 ### Users
-- GET `/api/users/profile/:id` - Get user profile
-- PUT `/api/users/profile/:id` - Update user profile
+- POST `/users/signup` - Create new user account
+  ```json
+  {
+    "email": "user@example.com",
+    "password": "password123",
+    "username": "username",
+    "bio": "Optional bio",
+    "skills": ["skill1", "skill2"]
+  }
+  ```
+- GET `/users/profile/:id` - Get user profile
+- PUT `/users/profile/:id` - Update user profile
 
 ### Skills
-- GET `/api/skills` - Get all skills
-- POST `/api/skills` - Create new skill
-- GET `/api/skills/:id` - Get skill by ID
+- GET `/skills` - Get all skills
+- POST `/skills` - Create new skill
+- GET `/skills/:id` - Get skill by ID
 
 ## Database Schema
 
 ### Profiles Table
 - id (uuid, primary key)
 - username (text)
+- email (text)
 - bio (text)
 - skills (array)
 - created_at (timestamp)
