@@ -8,6 +8,7 @@ import 'aos/dist/aos.css';
 import Footer from "./components/Footer";
 import Explore from "./pages/Explore";
 import SignUp from "./pages/SignUp";
+import Profile from "./pages/Profile";
 
 const App = () => {
   useEffect(() => {
@@ -23,6 +24,7 @@ const App = () => {
           <Route path="/login" element={<Login />} />
           <Route path="/explore" element={<Explore />} />
           <Route path="/signup" element={<SignUp />} />
+          <Route path="/profile" element={<Profile />} />
         </Routes>
         <Footer />
     </div>
