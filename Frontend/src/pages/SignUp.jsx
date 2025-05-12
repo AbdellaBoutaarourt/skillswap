@@ -1,10 +1,35 @@
 import { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { DatePickerWithRange } from "@/components/datePickerRange";
 import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import logo from "../assets/logo.png";
+import loginImg from "../assets/Login.png";
+import connectImg from "../assets/connect.jpg";
+import progressImg from "../assets/matshup.jpg";
+import { Label } from "../components/ui/label";
+import defaultAvatar from "../assets/user.png";
+
+const slides = [
+  {
+    image: loginImg,
+    title: "Start Your Journey",
+    description: "Join our community of learners and teachers. Share your expertise and discover new skills."
+  },
+  {
+    image: connectImg,
+    title: "Connect & Collaborate",
+    description: "Find the perfect match for your skills. Our AI-powered system helps you connect with like-minded people."
+  },
+  {
+    image: progressImg,
+    title: "Grow Together",
+    description: "Learn from others while sharing your knowledge. Create meaningful connections and projects."
+  }
+];
 
 const steps = [
   "Basic Info",
@@ -182,6 +207,7 @@ MultiSelect.propTypes = {
 export default function SignUp() {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
+  const [currentSlide, setCurrentSlide] = useState(0);
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -202,6 +228,14 @@ export default function SignUp() {
   const [submitted, setSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef();
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   function validateStep1() {
     const newErrors = {};
@@ -271,7 +305,8 @@ export default function SignUp() {
           new Date(form.availability.from).toISOString().split("T")[0],
           new Date(form.availability.to).toISOString().split("T")[0]
         ],
-        social: form.social
+        social: form.social,
+        avatar: form.avatarUrl
       };
       console.log(formData);
 
@@ -294,126 +329,248 @@ export default function SignUp() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-primary p-4">
-      <div className="w-full max-w-xl bg-[#181f25] rounded-2xl shadow-lg p-8 md:p-12">
-        {/* Progress bar */}
-        <div className="flex items-center mb-8">
-          {steps.map((label, idx) => (
-            <div key={label} className="flex-1 flex items-center">
-              <div className={`rounded-full w-8 h-8 flex items-center justify-center font-bold text-white ${step >= idx ? 'bg-blue-500' : 'bg-gray-700'}`}>{idx+1}</div>
-              {idx < steps.length - 1 && <div className={`flex-1 h-1 mx-2 rounded ${step > idx ? 'bg-blue-500' : 'bg-gray-700'}`}></div>}
+    <div className=" flex items-center justify-center bg-primary p-4">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="rounded-2xl shadow-2xl flex flex-col-reverse md:flex-row w-full max-w-6xl overflow-hidden bg-[#232b32]"
+      >
+        <div className="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-center text-white">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+            className="mb-8"
+          >
+            <motion.img
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.3 }}
+              src={logo}
+              alt="SkillSwap Logo "
+              className="h-16 md:h-20 mx-auto mb-6"
+            />
+            <div className="flex items-center mb-8">
+              {steps.map((label, idx) => (
+                <div key={label} className="flex-1 flex items-center">
+                  <motion.div
+                    initial={{ scale: 0.8 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.2 * idx }}
+                    className={`rounded-full w-8 h-8 flex items-center justify-center font-bold text-white ${
+                      step >= idx ? 'bg-blue-500' : 'bg-gray-700'
+                    }`}
+                  >
+                    {idx + 1}
+                  </motion.div>
+                  {idx < steps.length - 1 && (
+                    <motion.div
+                      initial={{ scaleX: 0 }}
+                      animate={{ scaleX: 1 }}
+                      transition={{ delay: 0.2 * idx + 0.1 }}
+                      className={`flex-1 h-1 mx-2 rounded ${
+                        step > idx ? 'bg-blue-500' : 'bg-gray-700'
+                      }`}
+                    />
+                  )}
+                </div>
+              ))}
             </div>
-          ))}
+          </motion.div>
+
+          {submitted ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-green-400 text-center py-12 text-xl font-semibold"
+            >
+              Registration successful! 🎉<br/>Redirecting to login...
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+            >
+              {step === 0 && (
+                <motion.form
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="space-y-5"
+                >
+                  <div>
+                    <Label htmlFor="firstName" className="text-white">First name</Label>
+                    <Input name="firstName" id="firstName" value={form.firstName} onChange={handleChange} placeholder="First name" className="bg-[#232b32] text-white" />
+                    {errors.firstName && <div className="text-red-400 text-xs mt-1">{errors.firstName}</div>}
+                  </div>
+                  <div>
+                    <Label htmlFor="lastName" className="text-white">Last name</Label>
+                    <Input name="lastName" id="lastName" value={form.lastName} onChange={handleChange} placeholder="Last name" className="bg-[#232b32] text-white" />
+                    {errors.lastName && <div className="text-red-400 text-xs mt-1">{errors.lastName}</div>}
+                  </div>
+                  <div>
+                    <Label htmlFor="email" className="text-white">Email address</Label>
+                    <Input name="email" id="email" value={form.email} onChange={handleChange} placeholder="Email address" className="bg-[#232b32] text-white" />
+                    {errors.email && <div className="text-red-400 text-xs mt-1">{errors.email}</div>}
+                  </div>
+                  <div>
+                    <Label htmlFor="password" className="text-white">Password</Label>
+                    <Input name="password" id="password" type="password" value={form.password} onChange={handleChange} placeholder="Password" className="bg-[#232b32] text-white" />
+                    {errors.password && <div className="text-red-400 text-xs mt-1">{errors.password}</div>}
+                  </div>
+                  <div>
+                    <Label htmlFor="confirmPassword" className="text-white">Confirm password</Label>
+                    <Input name="confirmPassword" id="confirmPassword" type="password" value={form.confirmPassword} onChange={handleChange} placeholder="Confirm password" className="bg-[#232b32] text-white" />
+                    {errors.confirmPassword && <div className="text-red-400 text-xs mt-1">{errors.confirmPassword}</div>}
+                  </div>
+                  <div className="flex justify-end gap-2 pt-4">
+                    <Button type="button" onClick={handleNext} className="bg-blue-600 hover:bg-blue-700 text-white px-6">Next →</Button>
+                  </div>
+                </motion.form>
+              )}
+              {step === 1 && (
+                <motion.form
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="space-y-5"
+                >
+                  <div>
+                    <Label htmlFor="avatar" className="text-white">Profile picture <span className="text-xs text-gray-400">(optional)</span></Label>
+                    <div className="flex items-center gap-4">
+                      <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+                      <Button type="button" onClick={() => fileInputRef.current.click()} className="bg-blue-600 hover:bg-blue-700 text-white">Upload</Button>
+                      <img
+                        src={form.avatarUrl || defaultAvatar}
+                        alt="profile preview"
+                        className="w-14 h-14 rounded-full border-2 border-blue-500 object-cover"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="username" className="text-white">Username</Label>
+                    <Input name="username" id="username" value={form.username} onChange={handleChange} placeholder="Username" className="bg-[#232b32] text-white" />
+                    {errors.username && <div className="text-red-400 text-xs mt-1">{errors.username}</div>}
+                  </div>
+                  <div>
+                    <Label htmlFor="location" className="text-white">Location (city or region)</Label>
+                    <Input name="location" id="location" value={form.location} onChange={handleChange} placeholder="e.g. Amsterdam" className="bg-[#232b32] text-white" />
+                    {errors.location && <div className="text-red-400 text-xs mt-1">{errors.location}</div>}
+                  </div>
+                  <div className="flex justify-between gap-2 pt-4">
+                    <Button type="button" onClick={handlePrev} className="bg-gray-700 text-white">← Previous</Button>
+                    <Button type="button" onClick={handleNext} className="bg-blue-600 hover:bg-blue-700 text-white px-6">Next →</Button>
+                  </div>
+                </motion.form>
+              )}
+              {step === 2 && (
+                <motion.form
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="space-y-5"
+                  onSubmit={handleSubmit}
+                >
+                  <MultiSelect
+                    label="👨‍🎓 Which skills do you offer?"
+                    options={skillCategories}
+                    selected={form.skills}
+                    setSelected={skills => setForm(f => ({ ...f, skills }))}
+                  />
+                  <MultiSelect
+                    label="🎯 What do you want to learn?"
+                    options={skillCategories}
+                    selected={form.learning}
+                    setSelected={learning => setForm(f => ({ ...f, learning }))}
+                  />
+                  <div>
+                    <Label htmlFor="availability" className="text-white">Availability <span className="text-xs text-gray-400">(optional)</span></Label>
+                    <DatePickerWithRange className="w-full max-w-xs" onSelect={val => setForm(f => ({ ...f, availability: val }))} />
+                  </div>
+                  <div>
+                    <Label htmlFor="bio" className="text-white">Short bio <span className="text-xs text-gray-400">(optional, max. 200 characters)</span></Label>
+                    <Input name="bio" id="bio" value={form.bio} onChange={handleChange} maxLength={200} placeholder="Tell something about yourself..." className="bg-[#232b32] text-white" />
+                  </div>
+                  <div>
+                    <Label htmlFor="social" className="text-white">Social media / portfolio link <span className="text-xs text-gray-400">(optional)</span></Label>
+                    <Input name="social" id="social" value={form.social} onChange={handleChange} placeholder="e.g. LinkedIn, GitHub, website..." className="bg-[#232b32] text-white" />
+                  </div>
+                  {errors.submit && (
+                    <div className="text-red-400 text-sm">{errors.submit}</div>
+                  )}
+                  <div className="flex justify-between gap-2 pt-4">
+                    <Button type="button" onClick={handlePrev} className="bg-gray-700 text-white">← Previous</Button>
+                    <Button
+                      type="submit"
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-6"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? 'Signing up...' : 'Sign Up'}
+                    </Button>
+                  </div>
+                </motion.form>
+              )}
+            </motion.div>
+          )}
         </div>
-        <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">🔐 Sign Up Details</h2>
-        {submitted ? (
-          <div className="text-green-400 text-center py-12 text-xl font-semibold">
-            Registration successful! 🎉<br/>Redirecting to login...
+
+        <div className="hidden md:flex md:w-1/2 bg-white flex-col justify-center items-center p-8 relative overflow-hidden">
+          <div className="relative w-full h-full flex items-center justify-center">
+            <AnimatePresence mode="wait">
+              {slides.map((slide, index) => (
+                currentSlide === index && (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, x: 50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -50 }}
+                    transition={{ duration: 0.5 }}
+                    className="absolute w-full text-center"
+                  >
+                    <motion.img
+                      initial={{ scale: 0.9 }}
+                      animate={{ scale: 1 }}
+                      transition={{ duration: 0.5 }}
+                      src={slide.image}
+                      alt={slide.title}
+                      className="w-full h-80 object-contain mb-6 rounded-lg shadow-lg"
+                    />
+                    <motion.h3
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                      className="text-2xl font-bold mb-3 text-[#232b32]"
+                    >
+                      {slide.title}
+                    </motion.h3>
+                    <motion.p
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="text-gray-600 text-lg"
+                    >
+                      {slide.description}
+                    </motion.p>
+                  </motion.div>
+                )
+              ))}
+            </AnimatePresence>
           </div>
-        ) : (
-        <>
-        {step === 0 && (
-          <form className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium mb-1 text-white">First name</label>
-              <Input name="firstName" value={form.firstName} onChange={handleChange} placeholder="First name" className="bg-[#232b32] text-white" />
-              {errors.firstName && <div className="text-red-400 text-xs mt-1">{errors.firstName}</div>}
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1 text-white">Last name</label>
-              <Input name="lastName" value={form.lastName} onChange={handleChange} placeholder="Last name" className="bg-[#232b32] text-white" />
-              {errors.lastName && <div className="text-red-400 text-xs mt-1">{errors.lastName}</div>}
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1 text-white">Email address</label>
-              <Input name="email" value={form.email} onChange={handleChange} placeholder="Email address" className="bg-[#232b32] text-white" />
-              {errors.email && <div className="text-red-400 text-xs mt-1">{errors.email}</div>}
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1 text-white">Password</label>
-              <Input name="password" type="password" value={form.password} onChange={handleChange} placeholder="Password" className="bg-[#232b32] text-white" />
-              {errors.password && <div className="text-red-400 text-xs mt-1">{errors.password}</div>}
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1 text-white">Confirm password</label>
-              <Input name="confirmPassword" type="password" value={form.confirmPassword} onChange={handleChange} placeholder="Confirm password" className="bg-[#232b32] text-white" />
-              {errors.confirmPassword && <div className="text-red-400 text-xs mt-1">{errors.confirmPassword}</div>}
-            </div>
-            <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" onClick={handleNext} className="bg-blue-600 hover:bg-blue-700 text-white px-6">Next →</Button>
-            </div>
-          </form>
-        )}
-        {step === 1 && (
-          <form className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium mb-1 text-white">Profile picture <span className="text-xs text-gray-400">(optional)</span></label>
-              <div className="flex items-center gap-4">
-                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
-                <Button type="button" onClick={() => fileInputRef.current.click()} className="bg-blue-600 hover:bg-blue-700 text-white">Upload</Button>
-                {form.avatarUrl && <img src={form.avatarUrl} alt="preview" className="w-14 h-14 rounded-full border-2 border-blue-500 object-cover" />}
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1 text-white">Username</label>
-              <Input name="username" value={form.username} onChange={handleChange} placeholder="Username" className="bg-[#232b32] text-white" />
-              {errors.username && <div className="text-red-400 text-xs mt-1">{errors.username}</div>}
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1 text-white">Location (city or region)</label>
-              <Input name="location" value={form.location} onChange={handleChange} placeholder="e.g. Amsterdam" className="bg-[#232b32] text-white" />
-              {errors.location && <div className="text-red-400 text-xs mt-1">{errors.location}</div>}
-            </div>
-            <div className="flex justify-between gap-2 pt-4">
-              <Button type="button" onClick={handlePrev} className="bg-gray-700 text-white">← Previous</Button>
-              <Button type="button" onClick={handleNext} className="bg-blue-600 hover:bg-blue-700 text-white px-6">Next →</Button>
-            </div>
-          </form>
-        )}
-        {step === 2 && (
-          <form className="space-y-5" onSubmit={handleSubmit}>
-            <MultiSelect
-              label="👨‍🎓 Which skills do you offer?"
-              options={skillCategories}
-              selected={form.skills}
-              setSelected={skills => setForm(f => ({ ...f, skills }))}
-            />
-            <MultiSelect
-              label="🎯 What do you want to learn?"
-              options={skillCategories}
-              selected={form.learning}
-              setSelected={learning => setForm(f => ({ ...f, learning }))}
-            />
-            <div>
-              <label className="block text-sm font-medium mb-1 text-white">Availability <span className="text-xs text-gray-400">(optional)</span></label>
-              <DatePickerWithRange className="w-full max-w-xs" onSelect={val => setForm(f => ({ ...f, availability: val }))} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1 text-white">Short bio <span className="text-xs text-gray-400">(optional, max. 200 characters)</span></label>
-              <Input name="bio" value={form.bio} onChange={handleChange} maxLength={200} placeholder="Tell something about yourself..." className="bg-[#232b32] text-white" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1 text-white">Social media / portfolio link <span className="text-xs text-gray-400">(optional)</span></label>
-              <Input name="social" value={form.social} onChange={handleChange} placeholder="e.g. LinkedIn, GitHub, website..." className="bg-[#232b32] text-white" />
-            </div>
-            {errors.submit && (
-              <div className="text-red-400 text-sm">{errors.submit}</div>
-            )}
-            <div className="flex justify-between gap-2 pt-4">
-              <Button type="button" onClick={handlePrev} className="bg-gray-700 text-white">← Previous</Button>
-              <Button
-                type="submit"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6"
-                disabled={isLoading}
-              >
-                {isLoading ? 'Signing up...' : 'Sign Up'}
-              </Button>
-            </div>
-          </form>
-        )}
-        </>
-        )}
-      </div>
+
+          <div className="absolute bottom-8 left-0 right-0 flex justify-center space-x-3">
+            {slides.map((_, index) => (
+              <motion.button
+                key={index}
+                onClick={() => setCurrentSlide(index)}
+                whileHover={{ scale: 1.2 }}
+                whileTap={{ scale: 0.9 }}
+                className={`w-3 h-3 rounded-full transition-colors duration-200 ${
+                  currentSlide === index ? "bg-blue-600" : "bg-gray-300"
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+      </motion.div>
     </div>
   );
 }

@@ -1,11 +1,24 @@
 import { useState } from "react";
 import logo from "../assets/logo.png";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import defaultAvatar from "../assets/user.png";
 
 const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const user = JSON.parse(localStorage.getItem('user'));
+
+  function handleLogout() {
+    localStorage.removeItem('user');
+    localStorage.removeItem('session');
+    setDropdownOpen(false);
+    navigate('/login');
+  }
+
   return (
-    <header className=" flex items-center justify-between px-6 py-2 border-b border-white font-poppins relative">
+    <header className="flex items-center justify-between px-6 py-2 border-b border-white font-poppins relative bg-[#101820]">
       <div className="flex items-center space-x-2">
         <img src={logo} alt="Logo" />
       </div>
@@ -21,15 +34,93 @@ const Header = () => {
         </button>
       )}
       <nav className="hidden md:flex items-center space-x-6">
-        <Link to="/" className="text-white hover:text-secondary font-medium border-b-2 border-transparent hover:border-white transition-all duration-150 text-lg">
+        <Link
+          to="/"
+          className={`text-white hover:text-secondary font-medium border-b-2 transition-all duration-150 text-lg ${location.pathname === '/' ? 'border-blue-500' : 'border-transparent hover:border-white'}`}
+        >
           Home
         </Link>
-        <a href="/explore" className="text-white hover:text-secondary font-medium border-b-2 border-transparent hover:border-white transition-all duration-150 text-lg">
+        <Link
+          to="/explore"
+          className={`text-white hover:text-secondary font-medium border-b-2 transition-all duration-150 text-lg ${location.pathname.startsWith('/explore') ? 'border-blue-500' : 'border-transparent hover:border-white'}`}
+        >
           Explore
-        </a>
-        <Link to="/login" className="bg-button hover:bg-blue-700 text-white px-5 py-1.5 rounded-lg font-semibold focus:outline-none transition text-lg cursor-pointer">
-          Sign In
         </Link>
+        {user ? (
+          <>
+            <Link
+              to="/mashups"
+              className={`px-5 py-1.5 rounded-lg font-semibold focus:outline-none transition text-lg cursor-pointer bg-blue-600 hover:bg-blue-700 text-white ${location.pathname.startsWith('/mashups') ? 'ring-2 ring-blue-400' : ''}`}
+            >
+              Skill Mashups
+            </Link>
+            <button className="mx-2" aria-label="Notifications">
+              <svg width="24" height="24" fill="none" stroke="white" strokeWidth="2" viewBox="0 0 24 24">
+                <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 7.165 6 9.388 6 12v2.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+            </button>
+            <div className="relative">
+              <button
+                className="focus:outline-none"
+                onClick={() => setDropdownOpen((open) => !open)}
+                aria-label="Open profile menu"
+              >
+                <img
+                  src={user.avatarUrl || defaultAvatar}
+                  alt="profile"
+                  className="w-7 h-7 rounded-full border-2 border-blue-500 object-cover cursor-pointer"
+                />
+              </button>
+              {dropdownOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-50">
+                  <Link
+                    to="/messages"
+                    className="flex items-center px-4 py-2  hover:bg-gray-100"
+                    onClick={() => setDropdownOpen(false)}
+                  >
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                    </svg>
+                    Messages
+                  </Link>
+                  <Link
+                    to="/sessions"
+                    className="flex items-center px-4 py-2 hover:bg-gray-100"
+                    onClick={() => setDropdownOpen(false)}
+                  >
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m9-4V7a4 4 0 00-8 0v3m12 4v1a4 4 0 01-4 4H7a4 4 0 01-4-4v-1"/>
+                    </svg>
+                    Sessions
+                  </Link>
+                  <Link
+                    to="/profile"
+                    className="flex items-center px-4 py-2  hover:bg-gray-100"
+                    onClick={() => setDropdownOpen(false)}
+                  >
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path d="M5.121 17.804A9 9 0 1112 21a9 9 0 01-6.879-3.196z"/>
+                    </svg>
+                    Profile
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center w-full px-4 py-2  hover:bg-gray-100 cursor-pointer"
+                  >
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h4a2 2 0 012 2v1"/>
+                    </svg>
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          <Link to="/login" className="bg-button hover:bg-blue-700 text-white px-5 py-1.5 rounded-lg font-semibold focus:outline-none transition text-lg cursor-pointer">
+            Sign In
+          </Link>
+        )}
       </nav>
       <div
         className={`fixed top-0 right-0 h-full w-3/4 max-w-xs bg-[#0a1218] p-6 flex flex-col space-y-6 shadow-lg z-30 transform transition-transform duration-300 md:hidden ${menuOpen ? 'translate-x-0' : 'translate-x-full'}`}
@@ -48,12 +139,27 @@ const Header = () => {
           <Link to="/" className="text-white hover:text-secondary font-medium border-b-2 border-transparent hover:border-white transition-all duration-150 text-lg" onClick={() => setMenuOpen(false)}>
             Home
           </Link>
-          <a href="#" className="text-white hover:text-secondary font-medium border-b-2 border-transparent hover:border-white transition-all duration-150 text-lg" onClick={() => setMenuOpen(false)}>
+          <Link to="/explore" className="text-white hover:text-secondary font-medium border-b-2 border-transparent hover:border-white transition-all duration-150 text-lg" onClick={() => setMenuOpen(false)}>
             Explore
-          </a>
-          <Link to="/login" className="bg-button hover:bg-blue-700 cursor-pointer text-white px-5 py-1.5 rounded-lg font-semibold focus:outline-none transition text-lg" onClick={() => setMenuOpen(false)}>
-            Sign In
           </Link>
+          {user ? (
+            <>
+              <Link to="/mashups" className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-1.5 rounded-lg font-semibold focus:outline-none transition text-lg cursor-pointer" onClick={() => setMenuOpen(false)}>
+                Skill Mashups
+              </Link>
+              <Link to="/profile" className="flex items-center space-x-2 px-4 py-2 text-white hover:bg-gray-800 rounded" onClick={() => setMenuOpen(false)}>
+                <img src={user.avatarUrl || defaultAvatar} alt="profile" className="w-7 h-7 rounded-full border-2 border-blue-500 object-cover" />
+                <span>Profile</span>
+              </Link>
+              <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-white hover:bg-gray-800 rounded">
+                Logout
+              </button>
+            </>
+          ) : (
+            <Link to="/login" className="bg-button hover:bg-blue-700 cursor-pointer text-white px-5 py-1.5 rounded-lg font-semibold focus:outline-none transition text-lg" onClick={() => setMenuOpen(false)}>
+              Sign In
+            </Link>
+          )}
         </div>
       </div>
     </header>

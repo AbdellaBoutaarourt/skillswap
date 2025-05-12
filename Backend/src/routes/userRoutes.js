@@ -27,7 +27,7 @@ router.post('/signup', [
 
 
 
-    const { email, password, username, bio, skills, firstName, lastName, location , availability, learning, social } = req.body;
+    const { email, password, username, bio, skills, firstName, lastName, location , availability, learning, social, avatar } = req.body;
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
@@ -48,7 +48,9 @@ router.post('/signup', [
           email,
           location,
           availability,
-          social
+          social,
+          avatar_url:avatar
+
         }
       ])
       .select()
@@ -81,6 +83,7 @@ router.post('/signup', [
         learning: profileData.learning,
         availability: profileData.availability,
         location: profileData.location,
+        avatar: profileData.avatar_url
       }
     });
   } catch (error) {
