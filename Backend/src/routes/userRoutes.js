@@ -157,7 +157,7 @@ router.post('/login', [
     // Get user's learning goals
     const { data: learningGoals, error: learningError } = await supabase
       .from('learning_goals')
-      .select('skill')
+      .select('skills(name)')
       .eq('user_id', authData.user.id);
 
     if (learningError) throw learningError;
@@ -170,7 +170,7 @@ router.post('/login', [
         username: profileData.username,
         bio: profileData.bio,
         skills: profileData.skills,
-        learning: learningGoals.map(goal => goal.skill),
+        learning: learningGoals.map(goal => goal.skills.name),
         availability: profileData.availability,
         location: profileData.location,
       },
@@ -240,7 +240,6 @@ router.put('/profile/:id', [
 
     const { learning, ...profileData } = req.body;
 
-    // Update main profile
     const { data, error } = await supabase
       .from('users')
       .update(profileData)
@@ -258,9 +257,7 @@ router.put('/profile/:id', [
 
       if (deleteError) throw deleteError;
 
-      // Then insert new learning goals if any
       if (learning.length > 0) {
-        // Get skill IDs for the learning goals
         const { data: skillsData, error: skillsError } = await supabase
           .from('skills')
           .select('id, name')
@@ -274,7 +271,7 @@ router.put('/profile/:id', [
         }, {});
 
         const learningGoals = learning
-          .filter(skillName => skillMap[skillName]) // Only include skills that exist
+          .filter(skillName => skillMap[skillName])
           .map(skillName => ({
             user_id: req.params.id,
             skill_id: skillMap[skillName],
@@ -313,5 +310,70 @@ router.put('/profile/:id', [
     res.status(500).json({ error: error.message });
   }
 });
+
+router.post('/forgot-password', [
+  body('email').isEmail().normalizeEmail(),
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { email } = req.body;
+
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', email)
+      .single();
+
+    if (userError || !user) {
+      return res.json({ message: 'If your email is registered, you will receive a password reset link.' });
+    }
+
+    const { data: resetData, error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'http://localhost:5173/reset-password'
+    });
+
+    if (resetError) throw resetError;
+
+    res.json({ message: 'If your email is registered, you will receive a password reset link.' });
+  } catch (error) {
+    console.error('Error sending password reset:', error.message);
+    res.status(500).json({ error: 'Failed to send password reset email' });
+  }
+});
+
+router.post('/reset-password', [
+  body('token').exists(),
+  body('password').isLength({ min: 6 }),
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { token, password } = req.body;
+
+    const { error: sessionError } = await supabase.auth.setSession({
+      access_token: token,
+      refresh_token: ''
+    });
+
+    if (sessionError) throw sessionError;
+
+    const { error: updateError } = await supabase.auth.updateUser({ password });
+
+    if (updateError) throw updateError;
+
+    res.json({ message: 'Mot de passe réinitialisé avec succès' });
+  } catch (error) {
+    console.error('Erreur de réinitialisation:', error.message);
+    res.status(400).json({ error: 'Token invalide ou expiré.' });
+  }
+});
+
 
 module.exports = router;

@@ -9,6 +9,8 @@ import Footer from "./components/Footer";
 import Explore from "./pages/Explore";
 import SignUp from "./pages/SignUp";
 import Profile from "./pages/Profile";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 const App = () => {
   useEffect(() => {
@@ -25,6 +27,8 @@ const App = () => {
           <Route path="/explore" element={<Explore />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
         </Routes>
         <Footer />
     </div>

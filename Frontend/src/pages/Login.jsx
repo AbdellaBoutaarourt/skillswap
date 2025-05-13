@@ -189,7 +189,7 @@ const Login = () => {
               <motion.a
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                href="#"
+                href="/forgot-password"
                 className="text-sm text-blue-400 hover:text-blue-300 transition-colors duration-200"
               >
                 Forgot password?

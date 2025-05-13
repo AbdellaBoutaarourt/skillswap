@@ -117,9 +117,9 @@ const Header = () => {
             </div>
           </>
         ) : (
-          <Link to="/login" className="bg-button hover:bg-blue-700 text-white px-5 py-1.5 rounded-lg font-semibold focus:outline-none transition text-lg cursor-pointer">
-            Sign In
-          </Link>
+        <Link to="/login" className="bg-button hover:bg-blue-700 text-white px-5 py-1.5 rounded-lg font-semibold focus:outline-none transition text-lg cursor-pointer">
+          Sign In
+        </Link>
         )}
       </nav>
       <div
@@ -156,9 +156,9 @@ const Header = () => {
               </button>
             </>
           ) : (
-            <Link to="/login" className="bg-button hover:bg-blue-700 cursor-pointer text-white px-5 py-1.5 rounded-lg font-semibold focus:outline-none transition text-lg" onClick={() => setMenuOpen(false)}>
-              Sign In
-            </Link>
+          <Link to="/login" className="bg-button hover:bg-blue-700 cursor-pointer text-white px-5 py-1.5 rounded-lg font-semibold focus:outline-none transition text-lg" onClick={() => setMenuOpen(false)}>
+            Sign In
+          </Link>
           )}
         </div>
       </div>
