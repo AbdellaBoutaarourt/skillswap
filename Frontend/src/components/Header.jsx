@@ -66,7 +66,7 @@ const Header = () => {
                 aria-label="Open profile menu"
               >
                 <img
-                  src={user.avatarUrl || defaultAvatar}
+                  src={user.avatar || defaultAvatar}
                   alt="profile"
                   className="w-7 h-7 rounded-full border-2 border-blue-500 object-cover cursor-pointer"
                 />

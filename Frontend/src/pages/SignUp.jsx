@@ -11,7 +11,11 @@ import loginImg from "../assets/Login.png";
 import connectImg from "../assets/connect.jpg";
 import progressImg from "../assets/matshup.jpg";
 import { Label } from "../components/ui/label";
-import defaultAvatar from "../assets/user.png";
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY;
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const slides = [
   {
@@ -216,7 +220,6 @@ export default function SignUp() {
     confirmPassword: "",
     username: "",
     location: "",
-    avatar: null,
     avatarUrl: "",
     skills: [],
     learning: [],
@@ -291,6 +294,25 @@ export default function SignUp() {
 
     setIsLoading(true);
     try {
+      let avatarUrl = form.avatarUrl;
+
+      if (form.avatar) {
+        const fileExt = form.avatar.name.split('.').pop();
+        const fileName = `${form.username}_${Date.now()}.${fileExt}`;
+        const { error } = await supabase.storage
+          .from('avatars')
+          .upload(fileName, form.avatar);
+
+        if (error) throw error;
+
+        const { data: publicUrlData } = supabase
+          .storage
+          .from('avatars')
+          .getPublicUrl(fileName);
+
+        avatarUrl = publicUrlData.publicUrl;
+      }
+
       const formData = {
         email: form.email,
         password: form.password,
@@ -306,9 +328,8 @@ export default function SignUp() {
           new Date(form.availability.to).toISOString().split("T")[0]
         ],
         social: form.social,
-        avatar: form.avatarUrl
+        avatar: avatarUrl
       };
-      console.log(formData);
 
       const response = await axios.post('http://localhost:5000/users/signup', formData);
 
@@ -385,7 +406,9 @@ export default function SignUp() {
               animate={{ opacity: 1, scale: 1 }}
               className="text-green-400 text-center py-12 text-xl font-semibold"
             >
-              Registration successful! 🎉<br/>Redirecting to login...
+              Registration successful! 🎉<br/>
+              Please check your email for verification link.<br/>
+              Redirecting to login...
             </motion.div>
           ) : (
             <motion.div
@@ -441,7 +464,7 @@ export default function SignUp() {
                       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
                       <Button type="button" onClick={() => fileInputRef.current.click()} className="bg-blue-600 hover:bg-blue-700 text-white">Upload</Button>
                       <img
-                        src={form.avatarUrl || defaultAvatar}
+                        src={form.avatarUrl }
                         alt="profile preview"
                         className="w-14 h-14 rounded-full border-2 border-blue-500 object-cover"
                       />

@@ -154,7 +154,6 @@ router.post('/login', [
 
     if (profileError) throw profileError;
 
-    // Get user's learning goals
     const { data: learningGoals, error: learningError } = await supabase
       .from('learning_goals')
       .select('skills(name)')
@@ -173,6 +172,7 @@ router.post('/login', [
         learning: learningGoals.map(goal => goal.skills.name),
         availability: profileData.availability,
         location: profileData.location,
+        avatar: profileData.avatar_url
       },
       session: authData.session
     });
@@ -375,5 +375,35 @@ router.post('/reset-password', [
   }
 });
 
+// Get users
+router.get('/explore', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*');
+
+    if (error) throw error;
+
+    // Format the response with default values for missing fields
+    const formattedUsers = data.map(user => ({
+      id: user.id,
+      name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username,
+      role: Array.isArray(user.skills) && user.skills.length > 0 ? user.skills[0] : 'No skills listed',
+      avatar: user.avatar_url ,
+      rating: 0,
+      reviews: 0,
+      bio: user.bio || '',
+      location: user.location || '',
+      skills: Array.isArray(user.skills) ? user.skills : [],
+      categories: Array.isArray(user.skills) ? user.skills : [],
+      availability: user.availability || null
+    }));
+
+    res.json(formattedUsers);
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
 
 module.exports = router;

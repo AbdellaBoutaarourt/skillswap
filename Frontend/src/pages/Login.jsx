@@ -10,23 +10,23 @@ import loginImg from "../assets/Login.png";
 import connectImg from "../assets/connect.jpg";
 import progressImg from "../assets/matshup.jpg";
 
-const slides = [
-  {
-    image: loginImg,
-    title: "Learn, Share and Combine Skills",
-    description: "Explore a world where learning is mutual. Share what you know, learn what you need, and collaborate on something great."
-  },
-  {
-    image: connectImg,
-    title: "Connect With Like-Minded People",
-    description: "Find people who match your interests and availability. Whether you're here to teach or learn, you're not alone."
-  },
-  {
-    image: progressImg,
-    title: "Create Something Extraordinary",
-    description: "Mix your skills with others through our AI-powered Skill Matchups and bring unique projects to life."
-  }
-];
+  const slides = [
+    {
+      image: loginImg,
+      title: "Learn, Share and Combine Skills",
+      description: "Explore a world where learning is mutual. Share what you know, learn what you need, and collaborate on something great."
+    },
+    {
+      image: connectImg,
+      title: "Connect With Like-Minded People",
+      description: "Find people who match your interests and availability. Whether you're here to teach or learn, you're not alone."
+    },
+    {
+      image: progressImg,
+      title: "Create Something Extraordinary",
+      description: "Mix your skills with others through our AI-powered Skill Matchups and bring unique projects to life."
+    }
+  ];
 
 const Login = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -36,6 +36,7 @@ const Login = () => {
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -64,6 +65,7 @@ const Login = () => {
       const response = await axios.post('http://localhost:5000/users/login', form);
 
       if (response.data) {
+        console.log(response.data)
         localStorage.setItem('session', JSON.stringify(response.data.session));
         localStorage.setItem('user', JSON.stringify(response.data.user));
         navigate('/');
@@ -75,6 +77,22 @@ const Login = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function handleResendVerification() {
+    setIsResending(true);
+    try {
+      await axios.post('http://localhost:5000/users/resend-confirmation', { email: form.email });
+      setErrors({
+        submit: 'Verification email has been resent. Please check your inbox.'
+      });
+    } catch (error) {
+      setErrors({
+        submit: error.response?.data?.error || 'Failed to resend verification email'
+      });
+    } finally {
+      setIsResending(false);
     }
   }
 
@@ -203,6 +221,18 @@ const Login = () => {
                 className="text-red-400 text-sm text-center"
               >
                 {errors.submit}
+                {errors.submit.includes('Email not confirmed') && (
+                  <div className="mt-2">
+                    <Button
+                      type="button"
+                      onClick={handleResendVerification}
+                      className="text-sm bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+                      disabled={isResending}
+                    >
+                      {isResending ? 'Sending...' : 'Resend Verification Email'}
+                    </Button>
+                  </div>
+                )}
               </motion.div>
             )}
 
@@ -211,7 +241,7 @@ const Login = () => {
               whileTap={{ scale: 0.98 }}
             >
               <Button
-                type="submit"
+              type="submit"
                 className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all duration-200 text-lg shadow-lg hover:shadow-xl"
                 disabled={isLoading}
               >
@@ -240,8 +270,8 @@ const Login = () => {
               whileTap={{ scale: 0.95 }}
             >
               <Link to="/signup" className="text-blue-400 hover:text-blue-300 font-medium transition-colors duration-200">
-                Sign up
-              </Link>
+              Sign up
+            </Link>
             </motion.span>
           </motion.p>
         </div>
@@ -249,10 +279,10 @@ const Login = () => {
         <div className="hidden md:flex md:w-1/2 bg-white flex-col justify-center items-center p-8 relative overflow-hidden">
           <div className="relative w-full h-full flex items-center justify-center">
             <AnimatePresence mode="wait">
-              {slides.map((slide, index) => (
+            {slides.map((slide, index) => (
                 currentSlide === index && (
                   <motion.div
-                    key={index}
+                key={index}
                     initial={{ opacity: 0, x: 50 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -50 }}
@@ -263,17 +293,17 @@ const Login = () => {
                       initial={{ scale: 0.9 }}
                       animate={{ scale: 1 }}
                       transition={{ duration: 0.5 }}
-                      src={slide.image}
-                      alt={slide.title}
+                  src={slide.image}
+                  alt={slide.title}
                       className="w-full h-80 object-contain mb-6 rounded-lg shadow-lg"
-                    />
+                />
                     <motion.h3
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.2 }}
                       className="text-2xl font-bold mb-3 text-[#232b32]"
                     >
-                      {slide.title}
+                  {slide.title}
                     </motion.h3>
                     <motion.p
                       initial={{ opacity: 0, y: 20 }}
@@ -281,11 +311,11 @@ const Login = () => {
                       transition={{ delay: 0.3 }}
                       className="text-gray-600 text-lg"
                     >
-                      {slide.description}
+                  {slide.description}
                     </motion.p>
                   </motion.div>
                 )
-              ))}
+            ))}
             </AnimatePresence>
           </div>
 

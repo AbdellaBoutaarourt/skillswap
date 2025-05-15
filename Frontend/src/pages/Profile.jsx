@@ -190,7 +190,7 @@ function Profile() {
     <div className="min-h-screen bg-[#101820] text-white flex flex-col items-center py-12 px-2">
       <div className="w-full max-w-4xl flex flex-col md:flex-row items-center md:items-start md:space-x-8 mb-8">
         <img
-          src={user.avatarUrl || user.avatar || defaultAvatar}
+          src={user.avatar ||  defaultAvatar}
           alt="avatar"
           className="w-36 h-36 rounded-full border-2 border-white object-cover mb-4 md:mb-0"
         />
@@ -202,7 +202,7 @@ function Profile() {
           <div className="flex gap-4 md:gap-6 justify-center md:justify-end">
             <AlertDialog open={open} onOpenChange={setOpen}>
               <AlertDialogTrigger asChild>
-                <Button variant="outline" className="border-white cursor-pointer text-white font-semibold rounded-lg px-8 py-2 h-11 text-base transition hover:bg-white/10">Edit profile</Button>
+                <Button variant="outline" className="border-white cursor-pointer text-black font-semibold rounded-lg px-8 py-2 h-11 text-base transition hover:bg-white/10">Edit profile</Button>
               </AlertDialogTrigger>
               <AlertDialogContent className="bg-[#181f25] text-white">
                 <form onSubmit={handleEditSubmit} className="flex flex-col gap-4">
@@ -237,7 +237,7 @@ function Profile() {
                   {success && <div className="text-green-400 text-sm">{success}</div>}
                   <AlertDialogFooter>
                     <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-6" disabled={loading}>{loading ? 'Saving...' : 'Save'}</Button>
-                    <AlertDialogCancel type="button" className="border-white text-white px-6">Cancel</AlertDialogCancel>
+                    <AlertDialogCancel type="button" className="border-white text-black px-6 cursor-pointer">Cancel</AlertDialogCancel>
                   </AlertDialogFooter>
                 </form>
               </AlertDialogContent>
