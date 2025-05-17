@@ -3,6 +3,9 @@ import { Button } from "../components/ui/button";
 import { useState, useEffect } from "react";
 import { DatePickerWithRange } from "../components/datePickerRange";
 import axios from "axios";
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogFooter, DialogTitle } from "../components/ui/dialog";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../components/ui/select";
+import { toast, Toaster } from "sonner"
 
 export default function Explore() {
   const [categories, setCategories] = useState([]);
@@ -14,6 +17,9 @@ export default function Explore() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [openDialog, setOpenDialog] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedSkill, setSelectedSkill] = useState("");
 
   const fetchCategories = async () => {
     try {
@@ -77,14 +83,45 @@ export default function Explore() {
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filteredUsers = filteredUsers.filter(user =>
-        user.name.toLowerCase().includes(query) ||
-        user.role.toLowerCase().includes(query) ||
-        user.skills?.some(skill => skill.toLowerCase().includes(query))
+        (user.name && user.name.toLowerCase().includes(query)) ||
+        (user.role && user.role.toLowerCase().includes(query)) ||
+        (Array.isArray(user.skills) && user.skills.some(skill => skill && skill.toLowerCase().includes(query)))
       );
     }
 
     setUsers(filteredUsers);
   }, [allUsers, selectedCategories, dateRange, searchQuery, skillsData]);
+
+  const handleSwapRequest = async (receiver_id, requested_skill, receiver_name) => {
+    const user = JSON.parse(localStorage.getItem("user"));
+    const requester_id = user.id;
+    if (!requester_id) {
+      toast("Error", {
+        description: "You must be logged in to send a swap request.",
+        duration: 4000,
+        variant: "destructive"
+      });
+      return;
+    }
+    try {
+      await axios.post('http://localhost:5000/skills/skill-requests', {
+        requester_id,
+        receiver_id,
+        requested_skill,
+      });
+      toast("Request sent!", {
+        description: `Your swap request for ${requested_skill} has been sent to ${receiver_name}.`,
+        duration: 4000,
+        variant: "success"
+      });
+    } catch {
+      toast("Error", {
+        description: "Failed to send swap request.",
+        duration: 4000,
+        variant: "destructive"
+      });
+    }
+  };
 
   return (
     <div className="flex min-h-screen bg-[#111B23] text-white">
@@ -152,13 +189,74 @@ export default function Explore() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {users.map(user => (
-              <div key={user.id} className="flex items-center gap-4 p-4 bg-[#181f25] rounded-xl shadow border-none">
-                <img src={user.avatar} alt={user.name} className="w-20 h-20 rounded-full border-2 border-button" />
-                <div className="flex-1">
-                  <div className="font-bold text-lg">{user.name}</div>
-                  <div className="text-gray-300 text-sm mb-2">{user.role}</div>
-                  <div className="text-xs text-gray-400 mb-2">{user.rating}.0 ({user.reviews} reviews)</div>
-                  <Button>connect →</Button>
+              <div key={user.id} className="flex flex-col sm:flex-row items-start gap-4 p-4 bg-[#181f25] rounded-xl shadow border-none h-full w-full max-w-xs sm:max-w-none mx-auto" style={{ minWidth: 0 }}>
+                <img src={user.avatar} alt={user.name} className="w-20 min-w-[5rem] h-20 rounded-full border-2 border-button object-cover mx-auto sm:mx-0" />
+                <div className="flex-1 w-full min-w-0">
+                  <div className="font-bold text-lg text-white">{user.name}</div>
+                  <div className="flex items-center gap-1 text-xs text-gray-400 mb-1">
+                    <span role="img" aria-label="bio">📖</span>
+                    {user.bio && user.bio.length > 0
+                      ? user.bio.length > 100
+                        ? user.bio.slice(0, 100) + '...'
+                        : user.bio
+                      : <span className="italic text-gray-500">No bio</span>
+                    }
+                  </div>
+                  <div className="text-xs text-white mb-2">{user.rating}.0 ({user.reviews} reviews)</div>
+                  <div className="mb-2">
+                    <div className="text-xs text-white mb-1">🔁 I offer :</div>
+                    <div className="flex flex-wrap gap-1">
+                      {user.skills?.map((skill, index) => (
+                        <span key={index} className="px-2 py-1 bg-blue-500/20 text-white rounded-full text-xs">
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mb-3">
+                    <div className="text-xs text-white mb-1">🎯 I want to learn :</div>
+                    <div className="flex flex-wrap gap-1">
+                      {user.learning?.slice(0, 3).map((skill, index) => (
+                        <span key={index} className="px-2 py-1 bg-purple-500/20 text-white rounded-full text-xs">
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex justify-end mt-2">
+                    <Dialog open={openDialog && selectedUser?.id === user.id} onOpenChange={open => { setOpenDialog(open); if (!open) setSelectedSkill(""); }}>
+                      <DialogTrigger asChild>
+                        <Button onClick={() => { setSelectedUser(user); setSelectedSkill(""); }}>Send Swap Request !</Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Send a Swap Request</DialogTitle>
+                          <div className="mb-2 font-semibold">Choose the skill you want to learn from {user.name}:</div>
+                        </DialogHeader>
+                        <Select value={selectedSkill} onValueChange={setSelectedSkill}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select a skill..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {user.skills?.map((skill, idx) => (
+                              <SelectItem key={idx} value={skill}>{skill}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <DialogFooter>
+                          <Button
+                            disabled={!selectedSkill}
+                            onClick={() => {
+                              setOpenDialog(false);
+                              handleSwapRequest(user.id, selectedSkill, user.name);
+                            }}
+                          >
+                            Confirm
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                 </div>
               </div>
             ))}
@@ -168,6 +266,7 @@ export default function Explore() {
           <Button>More users</Button>
         </div>
       </main>
+      <Toaster position="bottom-right"  />
     </div>
   );
 }

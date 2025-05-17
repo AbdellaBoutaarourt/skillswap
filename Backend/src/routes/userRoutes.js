@@ -378,23 +378,37 @@ router.post('/reset-password', [
 // Get users
 router.get('/explore', async (req, res) => {
   try {
-    const { data, error } = await supabase
+    // Fetch all users
+    const { data: users, error: userError } = await supabase
       .from('users')
       .select('*');
+    if (userError) throw userError;
 
-    if (error) throw error;
+    // Fetch all learning goals with skill names
+    const { data: learningGoals, error: lgError } = await supabase
+      .from('learning_goals')
+      .select('user_id, skills(name)');
+    if (lgError) throw lgError;
 
-    const formattedUsers = data.map(user => ({
+    // Map user_id to arrayy
+    const userLearningMap = {};
+    for (const lg of learningGoals) {
+      if (!userLearningMap[lg.user_id]) userLearningMap[lg.user_id] = [];
+      if (lg.skills && lg.skills.name) userLearningMap[lg.user_id].push(lg.skills.name);
+    }
+
+    //  users
+    const formattedUsers = users.map(user => ({
       id: user.id,
-      name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username,
+      name:  user.username,
       role: Array.isArray(user.skills) && user.skills.length > 0 ? user.skills[0] : 'No skills listed',
-      avatar: user.avatar_url ,
+      avatar: user.avatar_url,
       rating: 0,
       reviews: 0,
       bio: user.bio || '',
       location: user.location || '',
       skills: Array.isArray(user.skills) ? user.skills : [],
-      categories: Array.isArray(user.skills) ? user.skills : [],
+      learning: userLearningMap[user.id] || [],
       availability: user.availability || null
     }));
 

@@ -21,6 +21,36 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Create a new skill request
+router.post('/skill-requests', async (req, res) => {
+  const { requester_id, receiver_id, requested_skill } = req.body;
+  try {
+    const { data, error } = await supabase
+      .from('skill_requests')
+      .insert([{ requester_id, receiver_id, requested_skill }])
+      .select()
+      .single();
+    if (error) throw error;
+    res.status(201).json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
+// requests for a user
+router.get('/skill-requests/user/:userId', async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const { data, error } = await supabase
+      .from('skill_requests')
+      .select('*')
+      .or(`requester_id.eq.${userId},receiver_id.eq.${userId}`)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 module.exports = router;
