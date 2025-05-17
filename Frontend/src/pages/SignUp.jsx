@@ -12,6 +12,8 @@ import connectImg from "../assets/connect.jpg";
 import progressImg from "../assets/matshup.jpg";
 import { Label } from "../components/ui/label";
 import { createClient } from '@supabase/supabase-js';
+import defaultAvatar from "../assets/user.png";
+
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY;
@@ -39,93 +41,6 @@ const steps = [
   "Basic Info",
   "Profile Info",
   "Skills & Learning Goals",
-];
-
-const skillCategories = [
-  {
-    label: "💻 Tech & Development",
-    skills: [
-      "Web Development (HTML, CSS, JavaScript...)",
-      "Python Programming",
-      "Mobile App Development",
-      "Game Development",
-      "Data Science",
-      "UI/UX Design",
-      "Machine Learning / AI",
-      "Cybersecurity",
-      "Blockchain",
-      "SQL & Databases"
-    ]
-  },
-  {
-    label: "🎨 Creative Skills",
-    skills: [
-      "Graphic Design",
-      "Photography",
-      "Video Editing",
-      "Illustration",
-      "3D Modeling",
-      "Music Production",
-      "Writing / Copywriting",
-      "Fashion Design",
-      "Animation",
-      "Digital Art (including AI art tools)"
-    ]
-  },
-  {
-    label: "🌍 Languages & Communication",
-    skills: [
-      "English",
-      "French",
-      "Dutch",
-      "Spanish",
-      "German",
-      "Sign Language",
-      "Public Speaking",
-      "Writing Skills",
-      "Translation",
-      "Creative Writing"
-    ]
-  },
-  {
-    label: "📊 Business & Soft Skills",
-    skills: [
-      "Project Management",
-      "Entrepreneurship",
-      "Marketing (SEO, Social Media, Ads)",
-      "Financial Management",
-      "Networking",
-      "Negotiation",
-      "Leadership",
-      "Time Management",
-      "HR & Talent Development",
-      "Research Methods"
-    ]
-  },
-  {
-    label: "🧘 Personal Growth",
-    skills: [
-      "Mindfulness",
-      "Coaching / Mentoring",
-      "Healthy Lifestyle",
-      "Self-Discipline",
-      "Emotional Intelligence",
-      "Study Tips / Learning Techniques",
-      "Work-Study Balance"
-    ]
-  },
-  {
-    label: "🛠️ Practical Skills",
-    skills: [
-      "Cooking / Baking",
-      "DIY / Handyman Skills",
-      "Gardening",
-      "First Aid",
-      "Car Maintenance",
-      "Photo Editing",
-      "Robotics"
-    ]
-  }
 ];
 
 function MultiSelect({ label, options, selected, setSelected }) {
@@ -165,7 +80,7 @@ function MultiSelect({ label, options, selected, setSelected }) {
           onChange={e => { setSearch(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
         />
-        {selected.length > 0 && (
+        {selected && selected.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-2">
             {selected.map(skill => (
               <span key={skill} className="bg-blue-600 text-white rounded-full px-3 py-1 text-xs flex items-center gap-1">
@@ -185,7 +100,7 @@ function MultiSelect({ label, options, selected, setSelected }) {
                   <label key={skill} className="flex items-center px-3 py-1 cursor-pointer hover:bg-blue-900/30">
                     <input
                       type="checkbox"
-                      checked={selected.includes(skill)}
+                      checked={selected && selected.includes(skill)}
                       onChange={() => toggleSkill(skill)}
                       className="accent-blue-500 mr-2"
                     />
@@ -212,6 +127,7 @@ export default function SignUp() {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [skillCategories, setSkillCategories] = useState([]);
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -232,6 +148,44 @@ export default function SignUp() {
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef();
 
+  const checkEmailExists = async (email) => {
+    try {
+      const { data } = await axios.get(`http://localhost:5000/users/check-email/${email}`);
+      return data.exists;
+    } catch (err) {
+      console.error('Error checking email:', err);
+      return false;
+    }
+  };
+
+  const checkUsernameExists = async (username) => {
+    try {
+      const { data } = await axios.get(`http://localhost:5000/users/check-username/${username}`);
+      return data.exists;
+    } catch (err) {
+      console.error('Error checking username:', err);
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    const fetchSkills = async () => {
+      try {
+        const { data } = await axios.get('http://localhost:5000/skills');
+        const categories = [...new Set(data.map(skill => skill.category))];
+        const formattedCategories = categories.map(category => ({
+          label: category,
+          skills: data.filter(skill => skill.category === category).map(skill => skill.name)
+        }));
+        setSkillCategories(formattedCategories);
+      } catch (err) {
+        console.error('Error fetching skills:', err);
+      }
+    };
+
+    fetchSkills();
+  }, []);
+
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
@@ -240,36 +194,62 @@ export default function SignUp() {
     return () => clearInterval(interval);
   }, []);
 
-  function validateStep1() {
+  async function validateStep1() {
     const newErrors = {};
     if (!form.firstName) newErrors.firstName = "First name is required";
     if (!form.lastName) newErrors.lastName = "Last name is required";
     if (!form.email) newErrors.email = "Email is required";
     else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email)) newErrors.email = "Invalid email address";
+    else {
+      const emailExists = await checkEmailExists(form.email);
+      if (emailExists) newErrors.email = "This email is already registered";
+    }
     if (!form.password) newErrors.password = "Password is required";
     if (form.password.length < 6) newErrors.password = "At least 6 characters";
     if (form.password !== form.confirmPassword) newErrors.confirmPassword = "Passwords do not match";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   }
-  function validateStep2() {
+  async function validateStep2() {
     const newErrors = {};
-    if (!form.username) newErrors.username = "Username is required";
+    if (!form.username) {
+      newErrors.username = "Username is required";
+    } else {
+      const usernameExists = await checkUsernameExists(form.username);
+      if (usernameExists) {
+        newErrors.username = "This username is already taken";
+      }
+    }
     if (!form.location) newErrors.location = "Location is required";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   }
   function validateStep3() {
     const newErrors = {};
-    if (form.skills.length === 0) newErrors.skills = "Add at least 1 skill";
-    if (form.learning.length === 0) newErrors.learning = "Add at least 1 learning goal";
+
+    if (!Array.isArray(form.skills) || form.skills.length === 0) {
+      newErrors.skills = "Please select at least one skill you can offer";
+    }
+    if (!Array.isArray(form.learning) || form.learning.length === 0) {
+      newErrors.learning = "Please select at least one skill you want to learn";
+    }
+
+    if (Array.isArray(form.skills) && Array.isArray(form.learning) &&
+        form.skills.length > 0 && form.learning.length > 0) {
+      const commonSkills = form.skills.filter(skill => form.learning.includes(skill));
+      if (commonSkills.length > 0) {
+        newErrors.skills = "You cannot offer and learn the same skill";
+        newErrors.learning = "You cannot offer and learn the same skill";
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   }
 
-  function handleNext() {
-    if (step === 0 && !validateStep1()) return;
-    if (step === 1 && !validateStep2()) return;
+  async function handleNext() {
+    if (step === 0 && !(await validateStep1())) return;
+    if (step === 1 && !(await validateStep2())) return;
     if (step === 2 && !validateStep3()) return;
     setErrors({});
     setStep(step + 1);
@@ -290,27 +270,29 @@ export default function SignUp() {
   }
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!validateStep3()) return;
+
+    if (!validateStep3()) {
+      return;
+    }
 
     setIsLoading(true);
     try {
       let avatarUrl = form.avatarUrl;
 
       if (form.avatar) {
-        const fileExt = form.avatar.name.split('.').pop();
-        const fileName = `${form.username}_${Date.now()}.${fileExt}`;
+        const fileName = `${form.username}_${Date.now()}.${form.avatar.name.split('.').pop()}`;
         const { error } = await supabase.storage
           .from('avatars')
           .upload(fileName, form.avatar);
 
-        if (error) throw error;
 
-        const { data: publicUrlData } = supabase
+        const { data: { publicUrl } } = supabase
           .storage
           .from('avatars')
           .getPublicUrl(fileName);
+          if (error) throw error;
 
-        avatarUrl = publicUrlData.publicUrl;
+        avatarUrl = publicUrl;
       }
 
       const formData = {
@@ -321,12 +303,12 @@ export default function SignUp() {
         lastName: form.lastName,
         location: form.location,
         bio: form.bio,
-        skills: form.skills,
-        learning: form.learning,
-        availability: [
+        skills: form.skills || [],
+        learning: form.learning || [],
+        availability: form.availability ? [
           new Date(form.availability.from).toISOString().split("T")[0],
           new Date(form.availability.to).toISOString().split("T")[0]
-        ],
+        ] : [],
         social: form.social,
         avatar: avatarUrl
       };
@@ -464,7 +446,7 @@ export default function SignUp() {
                       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
                       <Button type="button" onClick={() => fileInputRef.current.click()} className="bg-blue-600 hover:bg-blue-700 text-white">Upload</Button>
                       <img
-                        src={form.avatarUrl }
+                        src={form.avatarUrl || defaultAvatar}
                         alt="profile preview"
                         className="w-14 h-14 rounded-full border-2 border-blue-500 object-cover"
                       />
@@ -499,12 +481,16 @@ export default function SignUp() {
                     selected={form.skills}
                     setSelected={skills => setForm(f => ({ ...f, skills }))}
                   />
+                  {errors.skills && <div className="text-red-400 text-xs mt-1">{errors.skills}</div>}
+
                   <MultiSelect
                     label="🎯 What do you want to learn?"
                     options={skillCategories}
                     selected={form.learning}
                     setSelected={learning => setForm(f => ({ ...f, learning }))}
                   />
+                  {errors.learning && <div className="text-red-400 text-xs mt-1">{errors.learning}</div>}
+
                   <div>
                     <Label htmlFor="availability" className="text-white">Availability <span className="text-xs text-gray-400">(optional)</span></Label>
                     <DatePickerWithRange className="w-full max-w-xs" onSelect={val => setForm(f => ({ ...f, availability: val }))} />

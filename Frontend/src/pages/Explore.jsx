@@ -49,24 +49,28 @@ export default function Explore() {
 
     if (selectedCategories.length > 0) {
       filteredUsers = filteredUsers.filter(user => {
-        const userSkillCategories = user.skills
-          ?.map(skillName => {
-            const skillObj = skillsData.find(s => s.name === skillName);
-            return skillObj ? skillObj.category : null;
-          })
-          .filter(Boolean);
-
-        return userSkillCategories?.some(cat => selectedCategories.includes(cat));
+        const userSkills = user.skills || [];
+        return selectedCategories.some(category => {
+          const categorySkills = skillsData
+            .filter(skill => skill.category === category)
+            .map(skill => skill.name);
+          return userSkills.some(skill => categorySkills.includes(skill));
+        });
       });
     }
 
     if (dateRange && dateRange.from && dateRange.to) {
       filteredUsers = filteredUsers.filter(user => {
-        if (!Array.isArray(user.availability)) return false;
-        return user.availability.some(dateStr => {
-          const date = new Date(dateStr);
-          return date >= dateRange.from && date <= dateRange.to;
-        });
+        if (!user.availability || !Array.isArray(user.availability) || user.availability.length !== 2) return false;
+
+        const [userStartDate, userEndDate] = user.availability.map(date => new Date(date));
+        const filterStartDate = new Date(dateRange.from);
+        const filterEndDate = new Date(dateRange.to);
+
+        return (
+          (userStartDate <= filterEndDate && userEndDate >= filterStartDate) ||
+          (filterStartDate <= userEndDate && filterEndDate >= userStartDate)
+        );
       });
     }
 
@@ -80,7 +84,6 @@ export default function Explore() {
     }
 
     setUsers(filteredUsers);
-    console.log('Filtered users:', filteredUsers);
   }, [allUsers, selectedCategories, dateRange, searchQuery, skillsData]);
 
   return (
@@ -100,7 +103,11 @@ export default function Explore() {
                   type="checkbox"
                   checked={selectedCategories.includes(cat)}
                   onChange={() => {
-                    setSelectedCategories(selectedCategories.includes(cat) ? selectedCategories.filter(c => c !== cat) : [...selectedCategories, cat]);
+                    setSelectedCategories(prev =>
+                      prev.includes(cat)
+                        ? prev.filter(c => c !== cat)
+                        : [...prev, cat]
+                    );
                   }}
                   className="accent-blue-500"
                 />
@@ -108,7 +115,6 @@ export default function Explore() {
               </label>
             ))}
           </div>
-          <Button className="mt-2">More</Button>
         </div>
       </aside>
       <main className="flex-1 p-6 md:p-12">

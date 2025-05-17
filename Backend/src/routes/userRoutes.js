@@ -71,18 +71,18 @@ router.post('/signup', [
       const learningGoals = learning
         .filter(skillName => skillMap[skillName])
         .map(skillName => ({
-          user_id: authData.user.id,
+        user_id: authData.user.id,
           skill_id: skillMap[skillName],
           created_at: new Date().toISOString()
-        }));
+      }));
 
       if (learningGoals.length > 0) {
-        const { error: learningError } = await supabase
-          .from('learning_goals')
+      const { error: learningError } = await supabase
+        .from('learning_goals')
           .insert(learningGoals);
 
-        if (learningError) throw learningError;
-      }
+      if (learningError) throw learningError;
+    }
     }
 
     const { data: learningGoals, error: learningError } = await supabase
@@ -115,7 +115,7 @@ router.post('/signup', [
   } catch (error) {
     console.error('Error creating user:', error.message);
     res.status(500).json({ error: error.message });
-  }
+}
 });
 
 // Login route
@@ -384,7 +384,6 @@ router.get('/explore', async (req, res) => {
 
     if (error) throw error;
 
-    // Format the response with default values for missing fields
     const formattedUsers = data.map(user => ({
       id: user.id,
       name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username,
@@ -403,6 +402,41 @@ router.get('/explore', async (req, res) => {
   } catch (error) {
     console.error('Error fetching users:', error);
     res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// Check if email exists
+router.get('/check-email/:email', async (req, res) => {
+  try {
+    const { email } = req.params;
+    const { data, error } = await supabase
+      .from('users')
+      .select('email')
+      .eq('email', email);
+
+    if (error) throw error;
+    res.json({ exists: data && data.length > 0 });
+  } catch (error) {
+    console.error('Error checking email:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Check if username exists
+router.get('/check-username/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    const { data, error } = await supabase
+      .from('users')
+      .select('username')
+      .eq('username', username)
+      .single();
+
+    if (error) throw error;
+    res.json({ exists: !!data });
+  } catch (error) {
+    console.error('Error checking username:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
