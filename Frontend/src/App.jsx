@@ -11,6 +11,7 @@ import SignUp from "./pages/SignUp";
 import Profile from "./pages/Profile";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import User from "./pages/User";
 
 const App = () => {
   useEffect(() => {
@@ -19,7 +20,7 @@ const App = () => {
 
   return (
     <BrowserRouter>
-    <div className="  bg-primary m-0 p-0">
+    <div className=" min-h-screen bg-primary m-0 p-0">
       <Header />
         <Routes>
           <Route path="/" element={<Home />} />
@@ -29,6 +30,7 @@ const App = () => {
           <Route path="/profile" element={<Profile />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/profile/:id" element={<User />} />
         </Routes>
         <Footer />
     </div>

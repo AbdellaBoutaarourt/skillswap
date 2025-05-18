@@ -205,7 +205,7 @@ router.post('/resend-confirmation', [
   } catch (error) {
     console.error('Error resending confirmation:', error.message);
     res.status(500).json({ error: 'Failed to resend confirmation email' });
-  }
+}
 });
 
 // Get user profile
@@ -450,6 +450,32 @@ router.get('/check-username/:username', async (req, res) => {
     res.json({ exists: !!data });
   } catch (error) {
     console.error('Error checking username:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get user by id
+router.get('/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (userError) throw userError;
+
+    const { data: learningGoals, error: learningError } = await supabase
+      .from('learning_goals')
+      .select('skills(name)')
+      .eq('user_id', id);
+
+    if (learningError) throw learningError;
+
+    user.learning = learningGoals ? learningGoals.map(goal => goal.skills.name) : [];
+
+    res.json(user);
+  } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });

@@ -1,14 +1,45 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import logo from "../assets/logo.png";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import defaultAvatar from "../assets/user.png";
+import axios from "axios";
 
 const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
   const navigate = useNavigate();
   const location = useLocation();
   const user = JSON.parse(localStorage.getItem('user'));
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const fetchNotifications = async () => {
+      try {
+        const { data } = await axios.get(`http://localhost:5000/skills/skill-requests/user/${user.id}`);
+        const pending = data.filter(req => req.receiver_id === user.id && req.status === 'pending');
+
+        const enriched = await Promise.all(
+          pending.map(async (req) => {
+            const { data: requester } = await axios.get(`http://localhost:5000/users/${req.requester_id}`);
+            return { ...req, requester };
+          })
+        );
+
+        setNotifications(enriched);
+console.log(enriched)
+
+      } catch (error) {
+        console.error("Failed to fetch notifications:", error);
+        setNotifications([]);
+      }
+    };
+
+    fetchNotifications();
+  }, [user?.id]);
+
 
   function handleLogout() {
     localStorage.removeItem('user');
@@ -54,11 +85,61 @@ const Header = () => {
             >
               Skill Mashups
             </Link>
-            <button className="mx-2" aria-label="Notifications">
-              <svg width="24" height="24" fill="none" stroke="white" strokeWidth="2" viewBox="0 0 24 24">
-                <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 7.165 6 9.388 6 12v2.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-              </svg>
-            </button>
+            <div className="relative">
+              <button className="mx-2 relative cursor-pointer" aria-label="Notifications" onClick={() => setNotifOpen(!notifOpen)}>
+                <svg width="24" height="24" fill="none" stroke="white" strokeWidth="2" viewBox="0 0 24 24">
+                  <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 7.165 6 9.388 6 12v2.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                {notifications.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full px-1.5 py-0.5">
+                    {notifications.length}
+                  </span>
+                )}
+              </button>
+              {notifOpen && notifications.length > 0 && (
+                <div className="absolute right-0 mt-2 w-80 bg-white text-black rounded-lg shadow-lg py-2 z-50">
+                  {notifications.map((notif) => (
+                    <div key={notif.id} className="p-3 border-b last:border-b-0">
+                      <div className="mb-2">
+                        <span className="font-semibold">
+                          {(notif.requester.first_name || notif.requester.last_name)
+                            ? `${notif.requester.first_name || ''} ${notif.requester.last_name || ''}`.trim()
+                            : notif.requester.username
+                          }
+                        </span>
+                        {" wants to learn: "}
+                        <span className="text-blue-600">{notif.requested_skill}</span>
+                        <div className="text-xs text-gray-600 mt-1">
+                          Please check their profile before accepting or declining this request.
+                        </div>
+                      </div>
+                      <div
+                        className="flex items-center gap-3 mt-2 cursor-pointer"
+                        onClick={() => navigate(`/profile/${notif.requester.id}`)}
+                        title="View profile"
+                      >
+                        <img
+                          src={notif.requester.avatar_url || defaultAvatar}
+                          alt={notif.requester.username}
+                          className="w-10 h-10 rounded-full object-cover border border-blue-500"
+                        />
+                        <div>
+                          <div className="font-bold">
+                            {(notif.requester.first_name || notif.requester.last_name)
+                              ? `${notif.requester.first_name || ''} ${notif.requester.last_name || ''}`.trim()
+                              : notif.requester.username
+                            }
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {notif.requester.location}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             <div className="relative">
               <button
                 className="focus:outline-none"

@@ -53,4 +53,22 @@ router.get('/skill-requests/user/:userId', async (req, res) => {
   }
 });
 
+// Update skill request status
+router.patch('/skill-requests/:id', async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  try {
+    const { data, error } = await supabase
+      .from('skill_requests')
+      .update({ status })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;
