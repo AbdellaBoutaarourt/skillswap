@@ -12,6 +12,7 @@ import Profile from "./pages/Profile";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import User from "./pages/User";
+import Messages from "./pages/Messages";
 
 const App = () => {
   useEffect(() => {

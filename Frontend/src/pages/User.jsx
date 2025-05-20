@@ -37,20 +37,10 @@ export default function User() {
       setRequestId(requestIdFromUrl);
       setRequestStatus('pending');
       setShowDeclinedMessage(false);
-      fetchRequestInfo(requestIdFromUrl);
     }
   }, [location.search]);
 
-  const fetchRequestInfo = async (requestId) => {
-    try {
-      const response = await axios.get(`http://localhost:5000/skills/skill-requests/${requestId}`);
-      const request = response.data;
-      setRequestedSkill(request.requested_skill);
-      setRequestStatus(request.status);
-    } catch (error) {
-      console.error('Error fetching request info:', error);
-    }
-  };
+
 
   useEffect(() => {
     const fetchRequests = async () => {

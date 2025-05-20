@@ -9,6 +9,7 @@ const Header = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const navigate = useNavigate();
   const location = useLocation();
   const user = JSON.parse(localStorage.getItem('user'));
@@ -45,8 +46,22 @@ console.log(enriched)
 
     window.addEventListener('refreshNotifications', handleRefreshNotifications);
 
+    const fetchUnreadMessages = async () => {
+      try {
+        const response = await axios.get(`http://localhost:5000/messages/unread/${user.id}`);
+        setUnreadMessages(response.data.count);
+      } catch (error) {
+        console.error("Failed to fetch unread messages:", error);
+      }
+    };
+
+    fetchUnreadMessages();
+    // Rafraîchir toutes les 30 secondes
+    const interval = setInterval(fetchUnreadMessages, 30000);
+
     return () => {
       window.removeEventListener('refreshNotifications', handleRefreshNotifications);
+      clearInterval(interval);
     };
   }, [user?.id]);
 
@@ -94,6 +109,19 @@ console.log(enriched)
               className={`px-5 py-1.5 rounded-lg font-semibold focus:outline-none transition text-lg cursor-pointer bg-blue-600 hover:bg-blue-700 text-white ${location.pathname.startsWith('/mashups') ? 'ring-2 ring-blue-400' : ''}`}
             >
               Skill Mashups
+            </Link>
+            <Link
+              to="/messages"
+              className={`relative mx-2 cursor-pointer ${location.pathname === '/messages' ? 'text-blue-500' : 'text-white'}`}
+            >
+              <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+              </svg>
+              {unreadMessages > 0 && (
+                <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full px-1.5 py-0.5">
+                  {unreadMessages}
+                </span>
+              )}
             </Link>
             <div className="relative">
               <button className="mx-2 relative cursor-pointer" aria-label="Notifications" onClick={() => setNotifOpen(!notifOpen)}>
