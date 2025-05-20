@@ -5,6 +5,7 @@ require('dotenv').config();
 
 const userRoutes = require('./routes/userRoutes');
 const skillRoutes = require('./routes/skillRoutes');
+const requestRoutes = require('./routes/requestRoutes');
 
 const app = express();
 
@@ -17,6 +18,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 app.use('/users', userRoutes);
 app.use('/skills', skillRoutes);
+app.use('/requests', requestRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'Welcome to SkillSwap API' });

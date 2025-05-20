@@ -38,6 +38,16 @@ console.log(enriched)
     };
 
     fetchNotifications();
+
+    const handleRefreshNotifications = () => {
+      fetchNotifications();
+    };
+
+    window.addEventListener('refreshNotifications', handleRefreshNotifications);
+
+    return () => {
+      window.removeEventListener('refreshNotifications', handleRefreshNotifications);
+    };
   }, [user?.id]);
 
 
@@ -115,7 +125,7 @@ console.log(enriched)
                       </div>
                       <div
                         className="flex items-center gap-3 mt-2 cursor-pointer"
-                        onClick={() => navigate(`/profile/${notif.requester.id}`)}
+                        onClick={() => navigate(`/profile/${notif.requester.id}?requestId=${notif.id}`)}
                         title="View profile"
                       >
                         <img

@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import defaultAvatar from "../assets/user.png";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "../components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/ui/dialog";
+import { toast, Toaster } from "sonner"
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../components/ui/select";
 
 const badgeIcons = [
   <span key="1" role="img" aria-label="star">⭐</span>,
@@ -13,11 +16,75 @@ const badgeIcons = [
 
 export default function User() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [tab, setTab] = useState("skills");
   const [range, setRange] = useState(null);
+  const [requestStatus, setRequestStatus] = useState('pending');
+  const [showSwapModal, setShowSwapModal] = useState(false);
+  const [selectedSkill, setSelectedSkill] = useState(null);
+  const [requestId, setRequestId] = useState(null);
+  const [requestedSkill, setRequestedSkill] = useState(null);
+  const [showDeclinedMessage, setShowDeclinedMessage] = useState(false);
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const requestIdFromUrl = searchParams.get('requestId');
+    if (requestIdFromUrl) {
+      setRequestId(requestIdFromUrl);
+      setRequestStatus('pending');
+      setShowDeclinedMessage(false);
+      fetchRequestInfo(requestIdFromUrl);
+    }
+  }, [location.search]);
+
+  const fetchRequestInfo = async (requestId) => {
+    try {
+      const response = await axios.get(`http://localhost:5000/skills/skill-requests/${requestId}`);
+      const request = response.data;
+      setRequestedSkill(request.requested_skill);
+      setRequestStatus(request.status);
+    } catch (error) {
+      console.error('Error fetching request info:', error);
+    }
+  };
+
+  useEffect(() => {
+    const fetchRequests = async () => {
+      try {
+        const response = await axios.get(`http://localhost:5000/skills/skill-requests/user/${id}`);
+        const requests = response.data;
+
+        const searchParams = new URLSearchParams(location.search);
+        const requestIdFromUrl = searchParams.get('requestId');
+
+        if (requestIdFromUrl) {
+          const specificRequest = requests.find(req => req.id === requestIdFromUrl);
+          if (specificRequest) {
+            setRequestId(specificRequest.id);
+            setRequestedSkill(specificRequest.requested_skill);
+            setRequestStatus(specificRequest.status);
+          }
+        } else {
+          const latestRequest = requests[0];
+          if (latestRequest) {
+            setRequestId(latestRequest.id);
+            setRequestedSkill(latestRequest.requested_skill);
+            setRequestStatus(latestRequest.status);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching requests:', error);
+      }
+    };
+
+    if (id) {
+      fetchRequests();
+    }
+  }, [id, location.search]);
 
   useEffect(() => {
     setLoading(true);
@@ -38,13 +105,65 @@ export default function User() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  if (loading) return <div className="text-center py-8">Loading...</div>;
+  const handleAccept = async () => {
+    try {
+      await axios.post(`http://localhost:5000/requests/accept/${requestId}`);
+      setRequestStatus('accepted');
+      toast.success("You can now start messaging with this user.");
+      window.dispatchEvent(new CustomEvent('refreshNotifications'));
+    } catch (error) {
+      console.error('Error accepting request:', error);
+      toast.error(error.response?.data?.message || "Failed to accept request. Please try again.");
+    }
+  };
+
+  const handleDecline = async () => {
+    try {
+      await axios.post(`http://localhost:5000/requests/decline/${requestId}`);
+      setRequestStatus('declined');
+      setShowDeclinedMessage(true);
+      toast.success("You can propose a skill swap instead.");
+      window.dispatchEvent(new CustomEvent('refreshNotifications'));
+    } catch (error) {
+      console.error('Error declining request:', error);
+      toast.error(error.response?.data?.message || "Failed to decline request. Please try again.");
+    }
+  };
+
+  const handleSwapSkill = async () => {
+    const user = JSON.parse(localStorage.getItem("user"));
+    const requester_id = user.id;
+
+    if (!selectedSkill) {
+      toast.error("Please select a skill to learn");
+      return;
+    }
+
+    try {
+      await axios.post(`http://localhost:5000/skills/skill-requests`, {
+        requester_id,
+        receiver_id: id,
+        requested_skill: selectedSkill,
+      });
+      setShowSwapModal(false);
+      toast.success("The user will be notified of your swap proposal.");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to send swap request. Please try again.");
+    }
+  };
+
+  if (loading) return (
+    <div className="text-center py-8">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto"></div>
+      <p className="mt-4 text-gray-400">Loading user profile...</p>
+    </div>
+  );
   if (error) return <div className="text-center py-8 text-red-500">{error}</div>;
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-[#101820] text-white flex flex-col items-center py-12 px-2">
-      <div className="w-full max-w-4xl flex flex-col md:flex-row items-center md:items-start md:space-x-8 mb-8">
+    <div className="min-h-screen  text-white flex flex-col items-center py-12 mx-5 ">
+      <div className="w-full max-w-4xl flex flex-col md:flex-row items-center  md:space-x-8 mb-8">
         <img
           src={user.avatar_url || user.avatar || defaultAvatar}
           alt="avatar"
@@ -60,23 +179,50 @@ export default function User() {
             </div>
             <div className="text-gray-300 text-base mt-1">{user.location || ""}</div>
           </div>
-          <div className="bg-white text-black rounded-2xl shadow-lg p-8 flex flex-col items-center max-w-xl w-full md:w-[420px] ml-0 md:ml-8">
-            <div className="mb-6 text-center text-base font-medium">
-              {(user.first_name || user.last_name ? user.first_name || '' : user.username)} wants to learn: <span className="font-bold text-blue-600">{user.learning && user.learning.length > 0 ? user.learning[0] : "a skill"}</span>
-              <br />
-              <span className="text-gray-600 text-sm">
-                Click below to accept and send messages, or decline the request.
-              </span>
+          {requestStatus === 'pending' && (
+            <div className="bg-white text-black rounded-2xl shadow-lg px-8 py-4 flex flex-col items-center max-w-xl w-full md:w-[420px] ml-0 ">
+              <div className="mb-6 text-center text-base font-medium">
+                {(user.first_name || user.last_name ? user.first_name || '' : user.username)} wants to learn: <span className="font-bold text-blue-600">{requestedSkill}</span>
+                <br />
+                <span className="text-gray-600 text-sm">
+                  Click below to accept or decline the request.
+                </span>
+              </div>
+              <div className="flex gap-4 w-full justify-center">
+                <Button className="w-1/2 bg-button hover:bg-blue-700 text-white font-bold py-2 px-8 rounded-lg transition" onClick={handleAccept}>
+                  Accept
+                </Button>
+                <Button variant="outline" className="w-1/2 border-black text-black font-bold py-2 px-8 rounded-lg cursor-pointer transition bg-white hover:bg-gray-100" onClick={handleDecline}>
+                  Decline
+                </Button>
+              </div>
             </div>
-            <div className="flex gap-4 w-full justify-center">
-              <Button className="w-1/2 bg-button hover:bg-blue-700 text-white font-bold py-2 px-8 rounded-lg transition">
-                Accept
-              </Button>
-              <Button variant="outline" className="w-1/2 border-black text-black font-bold py-2 px-8 rounded-lg cursor-pointer transition bg-white hover:bg-gray-100">
-                Decline
+          )}
+          {showDeclinedMessage && (
+            <div className=" text-black rounded-2xl  px-8 py-4 flex flex-col items-center max-w-xl w-full md:w-[420px] ml-0 ">
+              <div className="mb-6 text-center text-base font-medium text-white">
+                You declined the request. Would you like to propose a skill swap instead?
+              </div>
+              <div className="flex gap-4 w-full justify-center">
+                <Button className="w-1/2 bg-button hover:bg-blue-700 text-white font-bold py-2 px-8 rounded-lg transition" onClick={() => setShowSwapModal(true)}>
+                  Swap Skills
+                </Button>
+              </div>
+            </div>
+          )}
+          {requestStatus === 'accepted' && (
+            <div className=" text-black rounded-2xl  p-8 flex flex-col items-center max-w-xl w-full md:w-[420px] ml-0 md:ml-8">
+              <Button
+                className="bg-button hover:bg-blue-700 text-white font-bold py-2 px-8 rounded-lg transition flex items-center gap-2"
+                onClick={() => navigate(`/messages/${user.id}`)}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                Send Message
               </Button>
             </div>
-          </div>
+          )}
         </div>
       </div>
       <div className="w-full max-w-4xl mb-8">
@@ -181,6 +327,37 @@ export default function User() {
           </div>
         )}
       </div>
+
+      <Dialog open={showSwapModal} onOpenChange={setShowSwapModal}>
+        <DialogContent className="bg-[#181f25] text-white border border-gray-700">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Select a skill to learn</DialogTitle>
+          </DialogHeader>
+          <div className="mt-4">
+            <Select onValueChange={setSelectedSkill}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a skill" />
+              </SelectTrigger>
+              <SelectContent>
+                {user.skills && user.skills.map((skill) => (
+                  <SelectItem key={skill} value={skill}>
+                    {skill}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex justify-end gap-4 mt-6">
+            <Button variant="outline" onClick={() => setShowSwapModal(false)}>
+              Cancel
+            </Button>
+            <Button className="bg-button hover:bg-blue-700" onClick={handleSwapSkill}>
+              Propose Swap
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Toaster position="bottom-right"  />
     </div>
   );
 }
