@@ -23,7 +23,7 @@ export default function User() {
   const [error, setError] = useState(null);
   const [tab, setTab] = useState("skills");
   const [range, setRange] = useState(null);
-  const [requestStatus, setRequestStatus] = useState('pending');
+  const [requestStatus, setRequestStatus] = useState(null);
   const [showSwapModal, setShowSwapModal] = useState(false);
   const [selectedSkill, setSelectedSkill] = useState(null);
   const [requestId, setRequestId] = useState(null);
@@ -152,8 +152,8 @@ export default function User() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen  text-white flex flex-col items-center py-12 mx-5 ">
-      <div className="w-full max-w-4xl flex flex-col md:flex-row items-center  md:space-x-8 mb-8">
+    <div className="min-h-screen text-white flex flex-col items-center py-12 mx-5">
+      <div className="w-full max-w-4xl flex flex-col md:flex-row items-center md:space-x-8 mb-8">
         <img
           src={user.avatar_url || user.avatar || defaultAvatar}
           alt="avatar"
@@ -170,7 +170,7 @@ export default function User() {
             <div className="text-gray-300 text-base mt-1">{user.location || ""}</div>
           </div>
           {requestStatus === 'pending' && (
-            <div className="bg-white text-black rounded-2xl shadow-lg px-8 py-4 flex flex-col items-center max-w-xl w-full md:w-[420px] ml-0 ">
+            <div className="bg-white text-black rounded-2xl shadow-lg px-8 py-4 flex flex-col items-center max-w-xl w-full md:w-[420px] ml-0">
               <div className="mb-6 text-center text-base font-medium">
                 {(user.first_name || user.last_name ? user.first_name || '' : user.username)} wants to learn: <span className="font-bold text-blue-600">{requestedSkill}</span>
                 <br />
@@ -210,6 +210,19 @@ export default function User() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
                 Send Message
+              </Button>
+            </div>
+          )}
+          {!requestStatus && (
+            <div className="text-black rounded-2xl p-8 flex flex-col items-center max-w-xl w-full md:w-[420px] ml-0 md:ml-8">
+              <Button
+                className="bg-button hover:bg-blue-700 text-white font-bold py-2 px-8 rounded-lg transition flex items-center gap-2"
+                onClick={() => setShowSwapModal(true)}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+                Propose Skill Swap
               </Button>
             </div>
           )}

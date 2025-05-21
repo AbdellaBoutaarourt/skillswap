@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import defaultAvatar from "../assets/user.png";
@@ -13,6 +13,7 @@ export default function Messages() {
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const messagesContainerRef = useRef(null);
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user"));
 
@@ -88,7 +89,6 @@ export default function Messages() {
       };
 
       fetchMessages();
-      // Rafraîchir les messages toutes les 5 secondes
       const interval = setInterval(fetchMessages, 5000);
       return () => clearInterval(interval);
     }
@@ -121,6 +121,16 @@ export default function Messages() {
       .toLowerCase()
       .includes(search.toLowerCase())
   );
+
+  const scrollToBottom = () => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   if (loading) {
     return (
@@ -197,7 +207,7 @@ export default function Messages() {
         </div>
         {selectedUser ? (
           <>
-            <div className="flex-1 p-8 flex flex-col gap-4 overflow-y-auto">
+            <div ref={messagesContainerRef} className="flex-1 p-8 flex flex-col gap-4 overflow-y-auto">
               {messages.map(msg => (
                 <div key={msg.id} className={`flex ${msg.sender_id === user.id ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[60%] rounded-2xl px-4 py-2 ${msg.sender_id === user.id ? 'bg-blue-500 text-white' : 'bg-[#232e39] text-white'}`}>
@@ -206,7 +216,7 @@ export default function Messages() {
                 </div>
               ))}
               <div className={`text-xs text-gray-400 mt-1 ${messages.length > 0 ? (messages[messages.length - 1].sender_id === user.id ? 'text-right' : 'text-left') : ''}`}>
-                {messages.length > 0 ? new Date(messages[messages.length - 1].created_at).toLocaleTimeString() : ''}
+                {messages.length > 0 ? new Date(messages[messages.length - 1].created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
               </div>
             </div>
             <form

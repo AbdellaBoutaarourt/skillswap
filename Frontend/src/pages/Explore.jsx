@@ -96,7 +96,7 @@ export default function Explore() {
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
-    if (!user?.id) return;
+    if (!user.id) return;
     axios.get(`http://localhost:5000/skills/skill-requests/user/${user.id}`)
       .then(res => setExistingRequests(res.data))
       .catch(() => setExistingRequests([]));
@@ -202,10 +202,11 @@ export default function Explore() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {users.map(user => {
+              const currentUserId = JSON.parse(localStorage.getItem("user")).id;
               const alreadyRequested = existingRequests.some(
                 req =>
-                  req.requester_id === user.id &&
-                  req.receiver_id === selectedUser?.id &&
+                  req.requester_id === currentUserId &&
+                  req.receiver_id === user.id &&
                   req.requested_skill === selectedSkill &&
                   req.status !== 'declined'
               );
