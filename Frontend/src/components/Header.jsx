@@ -30,7 +30,6 @@ const Header = () => {
         );
 
         setNotifications(enriched);
-console.log(enriched)
 
       } catch (error) {
         console.error("Failed to fetch notifications:", error);
@@ -48,7 +47,7 @@ console.log(enriched)
 
     const fetchUnreadMessages = async () => {
       try {
-        const response = await axios.get(`http://localhost:5000/messages/unread/${user.id}`);
+        const response = await axios.get(`http://localhost:5000/messages/count/unread/${user.id}`);
         setUnreadMessages(response.data.count);
       } catch (error) {
         console.error("Failed to fetch unread messages:", error);
@@ -56,14 +55,15 @@ console.log(enriched)
     };
 
     fetchUnreadMessages();
-    // Rafraîchir toutes les 30 secondes
-    const interval = setInterval(fetchUnreadMessages, 30000);
+    const interval = setInterval(fetchUnreadMessages, 10000);
+
+    window.addEventListener('refreshUnreadMessages', fetchUnreadMessages);
 
     return () => {
       window.removeEventListener('refreshNotifications', handleRefreshNotifications);
       clearInterval(interval);
     };
-  }, [user?.id]);
+  }, [user.id]);
 
 
   function handleLogout() {

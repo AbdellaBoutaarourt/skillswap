@@ -132,6 +132,37 @@ export default function Messages() {
     scrollToBottom();
   }, [messages]);
 
+  const formatMessageDate = (date) => {
+    const messageDate = new Date(date);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    //  compare dates
+    const messageDateOnly = new Date(messageDate.getFullYear(), messageDate.getMonth(), messageDate.getDate());
+    const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const yesterdayOnly = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+
+    if (messageDateOnly.getTime() === todayOnly.getTime()) {
+      return messageDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } else if (messageDateOnly.getTime() === yesterdayOnly.getTime()) {
+      return 'Yesterday';
+    } else {
+      return messageDate.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    }
+  };
+
+  const shouldShowDateSeparator = (currentMessage, previousMessage) => {
+    if (!previousMessage) return true;
+
+    const currentDate = new Date(currentMessage.created_at);
+    const previousDate = new Date(previousMessage.created_at);
+
+    return currentDate.getDate() !== previousDate.getDate() ||
+           currentDate.getMonth() !== previousDate.getMonth() ||
+           currentDate.getFullYear() !== previousDate.getFullYear();
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#111B23]">
@@ -143,7 +174,6 @@ export default function Messages() {
 
   return (
     <div className="flex h-screen bg-[#111B23] text-white">
-      {/* Sidebar */}
       <div className="w-[320px] border-r border-gray-800 flex flex-col">
         <div className="p-4">
           <Input
@@ -165,7 +195,9 @@ export default function Messages() {
                       ? "bg-blue-600"
                       : "hover:bg-gray-800"
                   }`}
-                  onClick={() => setSelectedUser(conv.otherUser)}
+                  onClick={() => {
+                    setSelectedUser(conv.otherUser);
+                  }}
                 >
                   <div className="flex items-center gap-3">
                     <img
@@ -175,7 +207,7 @@ export default function Messages() {
                     />
                     <div className="flex-1">
                       <div className="font-semibold">
-                        {conv.otherUser.first_name || conv.otherUser.username}
+                        {conv.otherUser.username }
                       </div>
                       <div className="text-sm text-gray-400">
                         {conv.is_request ? (
@@ -208,16 +240,39 @@ export default function Messages() {
         {selectedUser ? (
           <>
             <div ref={messagesContainerRef} className="flex-1 p-8 flex flex-col gap-4 overflow-y-auto">
-              {messages.map(msg => (
-                <div key={msg.id} className={`flex ${msg.sender_id === user.id ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[60%] rounded-2xl px-4 py-2 ${msg.sender_id === user.id ? 'bg-blue-500 text-white' : 'bg-[#232e39] text-white'}`}>
-                    {msg.content}
+              {messages.map((msg, index) => (
+                <div key={msg.id}>
+                  {shouldShowDateSeparator(msg, messages[index - 1]) && (
+                    <div className="flex justify-center my-4">
+                      <span className="text-xs text-gray-400 bg-[#181f25] px-3 py-1 rounded-full">
+                        {formatMessageDate(msg.created_at)}
+                      </span>
+                    </div>
+                  )}
+                  <div className={`flex ${msg.sender_id === user.id ? 'justify-end' : 'justify-start'} items-start gap-2`}>
+                    {msg.sender_id !== user.id && (
+                      <img
+                        src={selectedUser.avatar_url || defaultAvatar}
+                        alt={selectedUser.username}
+                        className="w-8 h-8 rounded-full border-2 border-blue-500 object-cover mt-1"
+                      />
+                    )}
+                    <div className="flex flex-col max-w-[60%]">
+                      {msg.sender_id !== user.id && (
+                        <span className="text-xs text-white font-semibold mb-1 ml-1">
+                          {selectedUser.username}
+                        </span>
+                      )}
+                      <div className={`rounded-2xl px-4 py-2 ${msg.sender_id === user.id ? 'bg-blue-500 text-white' : 'bg-[#232e39] text-white'}`}>
+                        {msg.content}
+                      </div>
+                    </div>
+                  </div>
+                  <div className={`text-xs text-gray-400 mt-1 ${msg.sender_id === user.id ? 'text-right' : 'text-left'}`}>
+                    {formatMessageDate(msg.created_at)}
                   </div>
                 </div>
               ))}
-              <div className={`text-xs text-gray-400 mt-1 ${messages.length > 0 ? (messages[messages.length - 1].sender_id === user.id ? 'text-right' : 'text-left') : ''}`}>
-                {messages.length > 0 ? new Date(messages[messages.length - 1].created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
-              </div>
             </div>
             <form
               onSubmit={handleSendMessage}
