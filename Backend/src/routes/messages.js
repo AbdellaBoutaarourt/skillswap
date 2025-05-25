@@ -24,7 +24,7 @@ router.get('/count/unread/:userId', async (req, res) => {
   }
 });
 
-// Get all messages where the user
+// Get all messages of the user
 router.get('/conversations/:userId', async (req, res) => {
     const { userId } = req.params;
 
@@ -32,7 +32,6 @@ router.get('/conversations/:userId', async (req, res) => {
       const { data: messages, error } = await supabase
         .from('messages')
         .select('*')
-        .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -52,7 +51,7 @@ router.get('/conversations/:userId', async (req, res) => {
 
           const { data: userData, error: userError } = await supabase
             .from('users')
-            .select('id, username, first_name, avatar_url, location')
+            .select('id, username, first_name, avatar_url, location,last_name')
             .eq('id', otherUserId)
             .single();
 
@@ -82,6 +81,7 @@ router.get('/chat/:userId/:otherUserId', async (req, res) => {
     const { data: messages, error } = await supabase
       .from('messages')
       .select('*')
+      .or(`and(sender_id.eq.${userId},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${userId})`)
       .order('created_at', { ascending: true });
 
     if (error) throw error;

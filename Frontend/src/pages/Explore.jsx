@@ -2,6 +2,7 @@ import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { useState, useEffect } from "react";
 import { DatePickerWithRange } from "../components/datePickerRange";
+import defaultAvatar from "../assets/user.png";
 import axios from "axios";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogFooter, DialogTitle } from "../components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../components/ui/select";
@@ -212,7 +213,7 @@ export default function Explore() {
               );
               return (
                 <div key={user.id} className="flex flex-col sm:flex-row items-start gap-4 p-4 bg-[#181f25] rounded-xl shadow border-none h-full w-full max-w-xs sm:max-w-none mx-auto" style={{ minWidth: 0 }}>
-                  <img src={user.avatar} alt={user.name} className="w-20 min-w-[5rem] h-20 rounded-full border-2 border-button object-cover mx-auto sm:mx-0" />
+                  <img src={user.avatar || defaultAvatar}  alt={user.name} className="w-20 min-w-[5rem] h-20 rounded-full border-2 border-button object-cover mx-auto sm:mx-0" />
                   <div className="flex-1 w-full min-w-0">
                     <Link to={`/profile/${user.id}`} className="font-bold text-lg text-white hover:text-blue-400 transition-colors">
                       {user.name}

@@ -7,6 +7,7 @@ const userRoutes = require('./routes/userRoutes');
 const skillRoutes = require('./routes/skillRoutes');
 const requestRoutes = require('./routes/requestRoutes');
 const messageRoutes = require('./routes/messages');
+const sessionsRouter = require('./routes/sessionRoutes');
 
 const app = express();
 
@@ -18,6 +19,7 @@ app.use('/users', userRoutes);
 app.use('/skills', skillRoutes);
 app.use('/requests', requestRoutes);
 app.use('/messages', messageRoutes);
+app.use('/sessions', sessionsRouter);
 
 app.get('/', (req, res) => {
   res.json({ message: 'Welcome to SkillSwap API' });

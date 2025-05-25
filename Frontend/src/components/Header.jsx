@@ -63,7 +63,7 @@ const Header = () => {
       window.removeEventListener('refreshNotifications', handleRefreshNotifications);
       clearInterval(interval);
     };
-  }, [user.id]);
+  }, [user?.id]);
 
 
   function handleLogout() {
@@ -106,7 +106,7 @@ const Header = () => {
           <>
             <Link
               to="/mashups"
-              className={`px-5 py-1.5 rounded-lg font-semibold focus:outline-none transition text-lg cursor-pointer bg-blue-600 hover:bg-blue-700 text-white ${location.pathname.startsWith('/mashups') ? 'ring-2 ring-blue-400' : ''}`}
+              className={`px-5 py-1.5 rounded-lg font-semibold focus:outline-none transition text-lg cursor-pointer bg-blue-500 hover:bg-blue-700 text-white ${location.pathname.startsWith('/mashups') ? 'ring-2 ring-blue-400' : ''}`}
             >
               Skill Mashups
             </Link>

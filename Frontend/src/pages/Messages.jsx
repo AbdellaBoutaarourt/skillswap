@@ -1,21 +1,27 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import defaultAvatar from "../assets/user.png";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { toast, Toaster } from "sonner";
+import SessionRequestMessage from "../components/SessionRequestMessage";
+import SessionDialog from "../components/SessionDialog";
 
 export default function Messages() {
   const [conversations, setConversations] = useState([]);
-  const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedUser, setSelectedUser] = useState();
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const messagesContainerRef = useRef(null);
   const navigate = useNavigate();
+  const { userId } = useParams();
   const user = JSON.parse(localStorage.getItem("user"));
+  const [sessions, setSessions] = useState([]);
+  const didInitialScroll = useRef(false);
+  const [sessionDialogOpen, setSessionDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!user?.id) {
@@ -61,42 +67,61 @@ export default function Messages() {
         );
 
         setConversations(uniqueConversations);
+
+        if (userId) {
+          const conversation = uniqueConversations.find(conv => conv.otherUser.id === parseInt(userId));
+          if (conversation) {
+            setSelectedUser(conversation.otherUser);
+          } else {
+            const { data: otherUser } = await axios.get(`http://localhost:5000/users/${userId}`);
+            setSelectedUser(otherUser);
+          }
+        }
       } catch (error) {
         console.error("Error fetching conversations:", error);
-        toast.error("Failed to load conversations");
       } finally {
         setLoading(false);
       }
     };
 
     fetchConversations();
-    const interval = setInterval(fetchConversations, 30000);
-    return () => clearInterval(interval);
-  }, [user?.id, navigate]);
+  }, [user?.id, navigate, userId]);
+
+  const fetchSessions = async () => {
+    if (!selectedUser || !user.id) return;
+    const { data } = await axios.get(
+      `http://localhost:5000/sessions/${user.id}/${selectedUser.id}`
+    );
+    setSessions(data);
+  };
 
   useEffect(() => {
-    if (selectedUser) {
-      const fetchMessages = async () => {
-        try {
-          const response = await axios.get(
-            `http://localhost:5000/messages/chat/${user.id}/${selectedUser.id}`
-          );
-          setMessages(response.data);
-        } catch (error) {
-          console.error("Error fetching messages:", error);
-          toast.error("Failed to load messages");
-        }
-      };
+    if (!selectedUser) return;
 
+    const fetchMessages = async () => {
+      try {
+        const response = await axios.get(
+          `http://localhost:5000/messages/chat/${user.id}/${selectedUser.id}`
+        );
+        setMessages(response.data);
+      } catch (error) {
+        console.error("Error fetching messages:", error);
+      }
+    };
+
+    const fetchAll = () => {
       fetchMessages();
-      const interval = setInterval(fetchMessages, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [selectedUser, user?.id]);
+      fetchSessions();
+    };
+
+    fetchAll();
+    const interval = setInterval(fetchAll, 5000);
+
+    return () => clearInterval(interval);
+  }, [selectedUser, user.id]);
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim()) return;
 
     try {
       await axios.post(`http://localhost:5000/messages`, {
@@ -109,6 +134,7 @@ export default function Messages() {
         `http://localhost:5000/messages/chat/${user.id}/${selectedUser.id}`
       );
       setMessages(response.data);
+      scrollToBottom();
     } catch (error) {
       console.error("Error sending message:", error);
       toast.error("Failed to send message");
@@ -117,9 +143,9 @@ export default function Messages() {
 
   // Filter conversations by search
   const filteredConversations = conversations.filter(conv =>
-    (conv.otherUser.first_name || conv.otherUser.username || conv.otherUser.last_name)
-      .toLowerCase()
-      .includes(search.toLowerCase())
+    (conv.otherUser.username.toLowerCase().includes(search.toLowerCase()) ||
+    conv.otherUser.first_name.toLowerCase().includes(search.toLowerCase()) ||
+    conv.otherUser.last_name.toLowerCase().includes(search.toLowerCase()))
   );
 
   const scrollToBottom = () => {
@@ -129,7 +155,10 @@ export default function Messages() {
   };
 
   useEffect(() => {
-    scrollToBottom();
+    if (!didInitialScroll.current && messages.length > 0) {
+      scrollToBottom();
+      didInitialScroll.current = true;
+    }
   }, [messages]);
 
   const formatMessageDate = (date) => {
@@ -161,6 +190,46 @@ export default function Messages() {
     return currentDate.getDate() !== previousDate.getDate() ||
            currentDate.getMonth() !== previousDate.getMonth() ||
            currentDate.getFullYear() !== previousDate.getFullYear();
+  };
+
+  const handleAcceptSession = async (sessionId) => {
+    try {
+      await axios.patch(`http://localhost:5000/sessions/${sessionId}`, { status: 'accepted' });
+      fetchSessions();
+      toast.success('Session accepted!');
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to accept session');
+    }
+  };
+
+  const handleDeclineSession = async (sessionId) => {
+    try {
+      await axios.patch(`http://localhost:5000/sessions/${sessionId}`, { status: 'declined' });
+      fetchSessions();
+      toast.success('Session declined.');
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to decline session');
+    }
+  };
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      scrollToBottom();
+    }
+  }, [messages]);
+
+
+  //  sort messages and sessions
+  const allItems = [
+    ...messages.map(m => ({ ...m, type: 'message' })),
+    ...sessions.map(s => ({ ...s, type: 'session' }))
+  ].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+  const handleSessionScheduled = async () => {
+    if (!selectedUser || !user?.id) return;
+    fetchSessions();
   };
 
   if (loading) {
@@ -235,43 +304,62 @@ export default function Messages() {
       <div className="flex-1 flex flex-col max-h-11/12">
         <div className="flex justify-between items-center px-8 py-4 border-b border-[#232e39]">
           <div className="text-xl font-semibold text-white">{selectedUser?.first_name || selectedUser?.username}</div>
-          <button className="bg-blue-500 text-white px-4 py-2 rounded-lg font-medium">Schedule a session</button>
+          {selectedUser && (
+            <Button
+              className="bg-blue-500 text-white px-4 py-2 rounded-lg font-medium"
+              onClick={() => setSessionDialogOpen(true)}
+            >
+              Schedule a session
+            </Button>
+          )}
         </div>
         {selectedUser ? (
           <>
             <div ref={messagesContainerRef} className="flex-1 p-8 flex flex-col gap-4 overflow-y-auto">
-              {messages.map((msg, index) => (
-                <div key={msg.id}>
-                  {shouldShowDateSeparator(msg, messages[index - 1]) && (
-                    <div className="flex justify-center my-4">
-                      <span className="text-xs text-gray-400 bg-[#181f25] px-3 py-1 rounded-full">
-                        {formatMessageDate(msg.created_at)}
-                      </span>
-                    </div>
-                  )}
-                  <div className={`flex ${msg.sender_id === user.id ? 'justify-end' : 'justify-start'} items-start gap-2`}>
-                    {msg.sender_id !== user.id && (
-                      <img
-                        src={selectedUser.avatar_url || defaultAvatar}
-                        alt={selectedUser.username}
-                        className="w-8 h-8 rounded-full border-2 border-blue-500 object-cover mt-1"
-                      />
-                    )}
-                    <div className="flex flex-col max-w-[60%]">
-                      {msg.sender_id !== user.id && (
-                        <span className="text-xs text-white font-semibold mb-1 ml-1">
-                          {selectedUser.username}
+              {allItems.map((item, index) => (
+                item.type === 'session' ? (
+                  <SessionRequestMessage
+                    key={item.id}
+                    session={item}
+                    isReceiver={user.id === item.scheduled_with}
+                    onAccept={handleAcceptSession}
+                    onDecline={handleDeclineSession}
+                    user={user}
+                    selectedUser={selectedUser}
+                  />
+                ) : (
+                  <div key={item.id}>
+                    {shouldShowDateSeparator(item, allItems[index - 1]) && (
+                      <div className="flex justify-center my-4">
+                        <span className="text-xs text-gray-400 bg-[#181f25] px-3 py-1 rounded-full">
+                          {formatMessageDate(item.created_at)}
                         </span>
+                      </div>
+                    )}
+                    <div className={`flex ${item.sender_id === user.id ? 'justify-end' : 'justify-start'} items-start gap-2`}>
+                      {item.sender_id !== user.id && (
+                        <img
+                          src={selectedUser.avatar_url || defaultAvatar}
+                          alt={selectedUser.username}
+                          className="w-8 h-8 rounded-full border-2 border-blue-500 object-cover mt-1"
+                        />
                       )}
-                      <div className={`rounded-2xl px-4 py-2 ${msg.sender_id === user.id ? 'bg-blue-500 text-white' : 'bg-[#232e39] text-white'}`}>
-                        {msg.content}
+                      <div className="flex flex-col max-w-[60%]">
+                        {item.sender_id !== user.id && (
+                          <span className="text-xs text-white font-semibold mb-1 ml-1">
+                            {selectedUser.username}
+                          </span>
+                        )}
+                        <div className={`rounded-2xl px-4 py-2 ${item.sender_id === user.id ? 'bg-blue-500 text-white' : 'bg-[#232e39] text-white'}`}>
+                          {item.content}
+                        </div>
                       </div>
                     </div>
+                    <div className={`text-xs text-gray-400 mt-1 ${item.sender_id === user.id ? 'text-right' : 'text-left'}`}>
+                      {formatMessageDate(item.created_at)}
+                    </div>
                   </div>
-                  <div className={`text-xs text-gray-400 mt-1 ${msg.sender_id === user.id ? 'text-right' : 'text-left'}`}>
-                    {formatMessageDate(msg.created_at)}
-                  </div>
-                </div>
+                )
               ))}
             </div>
             <form
@@ -284,7 +372,7 @@ export default function Messages() {
                 placeholder="Type your message here"
                 className="flex-1 px-4 py-2 rounded-full bg-[#232e39] text-white placeholder-gray-400 outline-none h-10"
               />
-              <Button type="submit" className="bg-blue-500 text-white px-6 py-2 rounded-full font-medium h-10">send</Button>
+              <Button type="submit" className="bg-blue-500 text-white px-6  font-medium">send</Button>
             </form>
           </>
         ) : (
@@ -292,7 +380,14 @@ export default function Messages() {
             Select a conversation.
           </div>
         )}
+
       </div>
+      <SessionDialog
+        open={sessionDialogOpen}
+        onOpenChange={setSessionDialogOpen}
+        selectedUser={selectedUser}
+        onSessionScheduled={handleSessionScheduled}
+      />
       <Toaster position="bottom-right" />
     </div>
   );

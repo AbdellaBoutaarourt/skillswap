@@ -33,6 +33,7 @@ const App = () => {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/profile/:id" element={<User />} />
           <Route path="/messages" element={<Messages />} />
+          <Route path="/messages/:userId" element={<Messages />} />
         </Routes>
         <Footer />
     </div>
