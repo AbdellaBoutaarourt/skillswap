@@ -58,6 +58,40 @@ router.post('/', async (req, res) => {
   }
 });
 
+// Get all sessions for a user
+router.get('/user/:userId', async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const { data: sessions, error } = await supabase
+      .from('sessions')
+      .select('*')
+      .or(`scheduled_by.eq.${userId},scheduled_with.eq.${userId}`)
+      .order('date', { ascending: false });
+
+    if (error) throw error;
+
+    const enrichedSessions = await Promise.all(sessions.map(async (session) => {
+      let skillName = null;
+      if (session.skill_request_id) {
+        const { data: skillRequest, error: skillRequestError } = await supabase
+          .from('skill_requests')
+          .select('requested_skill')
+          .eq('id', session.skill_request_id)
+          .single();
+        if (!skillRequestError && skillRequest?.requested_skill) {
+          skillName = skillRequest.requested_skill;
+        }
+      }
+      return { ...session, skill_name: skillName };
+    }));
+
+    res.json(enrichedSessions);
+  } catch (error) {
+    console.error('Error fetching sessions for user:', error);
+    res.status(500).json({ message: 'Error fetching sessions for user' });
+  }
+});
+
 // Get all sessions between two users
 router.get('/:user1/:user2', async (req, res) => {
   const { user1, user2 } = req.params;

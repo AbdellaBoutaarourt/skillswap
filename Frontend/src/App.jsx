@@ -13,6 +13,8 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import User from "./pages/User";
 import Messages from "./pages/Messages";
+import Sessions from "./pages/Sessions";
+import JoinSession from "./pages/JoinSession";
 
 const App = () => {
   useEffect(() => {
@@ -34,6 +36,8 @@ const App = () => {
           <Route path="/profile/:id" element={<User />} />
           <Route path="/messages" element={<Messages />} />
           <Route path="/messages/:userId" element={<Messages />} />
+          <Route path="/sessions" element={<Sessions />} />
+          <Route path="/session/:sessionId" element={<JoinSession />} />
         </Routes>
         <Footer />
     </div>
