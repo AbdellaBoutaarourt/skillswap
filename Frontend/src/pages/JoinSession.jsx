@@ -9,9 +9,10 @@ export default function JoinSession() {
   const { sessionId } = useParams();
   const [callAccepted, setCallAccepted] = useState(false);
   const [callEnded, setCallEnded] = useState(false);
-  const [users, setUsers] = useState([]);
+  const [participants, setParticipants] = useState([]);
   const [sessionInfo, setSessionInfo] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
   const localVideo = useRef(null);
   const remoteVideo = useRef(null);
   const streamRef = useRef(null);
@@ -31,12 +32,68 @@ export default function JoinSession() {
       setIsMuted(!isMuted);
   };
 
+  const startScreenShare = async () => {
+    try {
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      if (localVideo.current) localVideo.current.srcObject = screenStream;
+      setIsScreenSharing(true);
+
+
+      if (peerRef.current && streamRef.current) {
+        const videoTrack = screenStream.getVideoTracks()[0];
+        const sender = peerRef.current._pc.getSenders().find(s => s.track && s.track.kind === 'video');
+        if (sender) sender.replaceTrack(videoTrack);
+      }
+
+      // when the user stops screen sharing
+      screenStream.getVideoTracks()[0].onended = () => {
+        stopScreenShare();
+      };
+    } catch (err) {
+      console.error('Screen share error:', err);
+    }
+  };
+
+  const stopScreenShare = async () => {
+    //
+    if (streamRef.current && localVideo.current) {
+      const videoTrack = streamRef.current.getVideoTracks()[0];
+      localVideo.current.srcObject = streamRef.current;
+      setIsScreenSharing(false);
+      if (peerRef.current) {
+        const sender = peerRef.current._pc.getSenders().find(s => s.track && s.track.kind === 'video');
+        if (sender) sender.replaceTrack(videoTrack);
+      }
+    }
+  };
+
   useEffect(() => {
     const fetchSessionInfo = async () => {
       try {
         const { data } = await axios.get(`http://localhost:5000/sessions/${sessionId}`);
         setSessionInfo(data);
-        console.log(data);
+
+        // Récupérer les informations des participants
+        const mentorId = data.scheduled_by;
+        const learnerId = data.scheduled_with;
+
+        const [mentorData, learnerData] = await Promise.all([
+          axios.get(`http://localhost:5000/users/${mentorId}`),
+          axios.get(`http://localhost:5000/users/${learnerId}`)
+        ]);
+
+        setParticipants([
+          {
+            id: mentorId,
+            name: `${mentorData.data.first_name} ${mentorData.data.last_name}`,
+            role: 'Mentor'
+          },
+          {
+            id: learnerId,
+            name: `${learnerData.data.first_name} ${learnerData.data.last_name}`,
+            role: 'Learner'
+          }
+        ]);
       } catch (error) {
         console.error("Error fetching session info:", error);
       }
@@ -143,10 +200,6 @@ export default function JoinSession() {
         }
       });
 
-        // Update users in session
-        socketRef.current.on("users-in-session", setUsers);
-
-
     }
 
 
@@ -230,6 +283,22 @@ export default function JoinSession() {
                     </svg>
                   )}
                 </Button>
+                <Button
+                  onClick={isScreenSharing ? stopScreenShare : startScreenShare}
+                  className={`p-2 rounded-full ${isScreenSharing ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-blue-500 hover:bg-blue-600'}`}
+                  title={isScreenSharing ? "Arrêter le partage d'écran" : "Partager l'écran"}
+                >
+                  {isScreenSharing ? (
+                    <svg className="w-5 h-5" fill="red" viewBox="0 0 24 24">
+                      <rect x="5" y="5" width="14" height="14" rx="2" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <rect x="3" y="4" width="18" height="14" rx="2" ry="2" strokeWidth="2" stroke="currentColor" fill="none" />
+                      <path d="M8 21h8" strokeWidth="2" stroke="currentColor" fill="none" />
+                    </svg>
+                  )}
+                </Button>
               </div>
             </div>
             <video
@@ -281,16 +350,21 @@ export default function JoinSession() {
             </span>
           </div>
 
-          {users.length > 0 && (
+          {participants.length > 0 && (
             <div className="mt-6">
               <h3 className="text-sm font-medium text-gray-400 mb-3">Session Participants:</h3>
               <div className="flex gap-4">
-                {users.map((user, index) => (
-                  <div key={index} className="bg-[#1a2634] px-4 py-2 rounded-lg text-sm flex items-center gap-2">
+                {participants.map((participant) => (
+                  <div key={`${participant.id}-${participant.role}`} className="bg-[#1a2634] px-4 py-2 rounded-lg text-sm flex items-center gap-2">
                     <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
-                    {user}
+                    <div>
+                      <div className="font-medium">{participant.name}</div>
+                      <div className={`text-xs ${participant.role === 'Mentor' ? 'text-green-400' : 'text-blue-400'}`}>
+                        {participant.role}
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
