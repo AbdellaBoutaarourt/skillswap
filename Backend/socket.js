@@ -12,6 +12,9 @@ const sessions = {};
 
 io.on("connection", socket => {
   socket.on("join-session", sessionId => {
+    if (!sessions[sessionId]) {
+      sessions[sessionId] = [];
+    }
 
    //add sessionId to sessions
     if (!sessions[sessionId].includes(socket.id)) {
