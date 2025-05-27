@@ -134,6 +134,7 @@ router.get('/:sessionId', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('sessions')
+      .select('*')
       .eq('id', sessionId)
       .single();
 
@@ -142,6 +143,16 @@ router.get('/:sessionId', async (req, res) => {
       return res.status(404).json({ message: 'Session not found' });
     }
 
+    // Get skill name from skill request
+    const { data: skillRequest, error: skillRequestError } = await supabase
+      .from('skill_requests')
+      .select('requested_skill')
+      .eq('id', data.skill_request_id)
+      .single();
+
+    if (!skillRequestError && skillRequest?.requested_skill) {
+      data.skill_name = skillRequest.requested_skill;
+    }
 
     res.json(data);
   } catch (error) {
