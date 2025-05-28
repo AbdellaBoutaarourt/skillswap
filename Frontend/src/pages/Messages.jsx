@@ -249,7 +249,7 @@ export default function Messages() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search"
-            className="mb-4 px-4 py-2 rounded-full bg-[#232e39] text-white placeholder-gray-400 outline-none"
+            className="mb-4 px-4 py-2 rounded-full bg-[#181f25] text-white placeholder-gray-400 outline-none"
           />
           <h2 className="text-xl font-bold mb-4">Conversations</h2>
           {filteredConversations.length === 0 ? (
@@ -350,7 +350,7 @@ export default function Messages() {
                             {selectedUser.username}
                           </span>
                         )}
-                        <div className={`rounded-2xl px-4 py-2 ${item.sender_id === user.id ? 'bg-blue-500 text-white' : 'bg-[#232e39] text-white'}`}>
+                        <div className={`rounded-2xl px-4 py-2 ${item.sender_id === user.id ? 'bg-blue-500 text-white' : 'bg-[#181f25] text-white'}`}>
                           {item.content}
                         </div>
                       </div>
@@ -370,7 +370,7 @@ export default function Messages() {
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 placeholder="Type your message here"
-                className="flex-1 px-4 py-2 rounded-full bg-[#232e39] text-white placeholder-gray-400 outline-none h-10"
+                className="flex-1 px-4 py-2 rounded-full bg-[#181f25] text-white placeholder-gray-400 outline-none h-10"
               />
               <Button type="submit" className="bg-blue-500 text-white px-6  font-medium">send</Button>
             </form>

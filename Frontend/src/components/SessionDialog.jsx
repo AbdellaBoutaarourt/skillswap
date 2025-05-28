@@ -31,12 +31,22 @@ export default function SessionDialog({ open, onOpenChange, selectedUser, onSess
     const user = JSON.parse(localStorage.getItem("user"));
     axios.get(`http://localhost:5000/skills/skill-requests/user/${user.id}`)
       .then(({ data }) => {
-        const filtered = data.filter(req =>
+        const accepted = data.filter(req =>
           req.status === 'accepted' &&
-          (req.requester_id === user.id && req.receiver_id === selectedUser.id) ||
-          (req.requester_id === selectedUser.id && req.receiver_id === user.id)
+          ((req.requester_id === user.id && req.receiver_id === selectedUser.id) ||
+           (req.requester_id === selectedUser.id && req.receiver_id === user.id))
         );
-        setAcceptedSkills(filtered);
+         const uniqueBySkill = Object.values(
+          accepted.reduce((acc, curr) => {
+            if (!acc[curr.requested_skill]) {
+              acc[curr.requested_skill] = curr;
+            }
+            return acc;
+          }, {})
+        );
+
+        setAcceptedSkills(uniqueBySkill);
+
       });
   }, [open, selectedUser]);
 
@@ -92,10 +102,10 @@ export default function SessionDialog({ open, onOpenChange, selectedUser, onSess
               onValueChange={value => setFormData({ ...formData, skill_request_id: value })}
               required
             >
-              <SelectTrigger className="bg-[#232e39] border-gray-700">
+              <SelectTrigger className="bg-[#181f25] border-gray-700">
                 <SelectValue placeholder="Select a skill" />
               </SelectTrigger>
-              <SelectContent className="bg-[#232e39] border-gray-700 text-white">
+              <SelectContent className="bg-[#181f25] border-gray-700 text-white">
                 {acceptedSkills.length === 0 ? (
                     <div className="px-4 py-2 text-sm text-gray-400">No accepted skills</div>
                 ) : (
@@ -114,7 +124,7 @@ export default function SessionDialog({ open, onOpenChange, selectedUser, onSess
                 <Button
                   variant="outline"
                   className={cn(
-                    "w-full cursor-pointer justify-start text-left font-normal bg-[#232e39] border-gray-700",
+                    "w-full cursor-pointer justify-start text-left font-normal bg-[#181f25] border-gray-700",
                     !date && "text-gray-400"
                   )}
                 >
@@ -122,13 +132,13 @@ export default function SessionDialog({ open, onOpenChange, selectedUser, onSess
                   {date ? format(date, "PPP") : "Pick a date"}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 bg-[#232e39] border-gray-700">
+              <PopoverContent className="w-auto p-0 bg-[#181f25] border-gray-700">
                 <Calendar
                   mode="single"
                   selected={date}
                   onSelect={setDate}
                   initialFocus
-                  className="bg-[#232e39] text-white"
+                  className="bg-[#181f25] text-white"
                 />
               </PopoverContent>
             </Popover>
@@ -144,7 +154,7 @@ export default function SessionDialog({ open, onOpenChange, selectedUser, onSess
                   value={formData.start_time}
                   onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
                   required
-                  className="bg-[#232e39] border-gray-700 [&::-webkit-calendar-picker-indicator]:invert cursor-pointer"
+                  className="bg-[#181f25] border-gray-700 [&::-webkit-calendar-picker-indicator]:invert cursor-pointer"
                   style={{ cursor: 'pointer' }}
                 />
               </div>
@@ -158,7 +168,7 @@ export default function SessionDialog({ open, onOpenChange, selectedUser, onSess
                   value={formData.end_time}
                   onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
                   required
-                  className="bg-[#232e39] border-gray-700 [&::-webkit-calendar-picker-indicator]:invert cursor-pointer"
+                  className="bg-[#181f25] border-gray-700 [&::-webkit-calendar-picker-indicator]:invert cursor-pointer"
                   style={{ cursor: 'pointer' }}
                 />
               </div>
@@ -171,10 +181,10 @@ export default function SessionDialog({ open, onOpenChange, selectedUser, onSess
               value={formData.mode}
               onValueChange={(value) => setFormData({ ...formData, mode: value })}
             >
-              <SelectTrigger className="bg-[#232e39] border-gray-700">
+              <SelectTrigger className="bg-[#181f25] border-gray-700">
                 <SelectValue placeholder="Select mode" />
               </SelectTrigger>
-              <SelectContent className="bg-[#232e39] border-gray-700 text-white">
+              <SelectContent className="bg-[#181f25] border-gray-700 text-white">
                 <SelectItem value="online">Online</SelectItem>
                 <SelectItem value="in_person">In Person</SelectItem>
               </SelectContent>
@@ -190,7 +200,7 @@ export default function SessionDialog({ open, onOpenChange, selectedUser, onSess
                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                 required
                 placeholder="Enter meeting location"
-                className="bg-[#232e39] border-gray-700"
+                className="bg-[#181f25] border-gray-700"
               />
             </div>
           )}
@@ -202,7 +212,7 @@ export default function SessionDialog({ open, onOpenChange, selectedUser, onSess
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               placeholder="Any additional notes"
-              className="bg-[#232e39] border-gray-700"
+              className="bg-[#181f25] border-gray-700"
             />
           </div>
 
