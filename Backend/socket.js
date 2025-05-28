@@ -35,6 +35,23 @@ io.on("connection", socket => {
     socket.to(sessionId).emit("signal", data);
   });
 
+socket.on("leave-session", sessionId => {
+  socket.leave(sessionId);
+
+  if (sessions[sessionId]) {
+    sessions[sessionId] = sessions[sessionId].filter(id => id !== socket.id);
+
+    //Notify all participants that someone has left
+    io.to(sessionId).emit("peer-disconnected", socket.id);
+
+    if (sessions[sessionId].length === 0) {
+      delete sessions[sessionId];
+    }
+
+    io.to(sessionId).emit("users-in-session", sessions[sessionId] || []);
+  }
+});
+
   socket.on("disconnect", () => {
     for (const sessionId in sessions) {
       sessions[sessionId] = sessions[sessionId].filter(id => id !== socket.id);

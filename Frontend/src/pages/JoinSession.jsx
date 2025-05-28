@@ -21,6 +21,7 @@ export default function JoinSession() {
   const navigate = useNavigate();
   const offerReceived = useRef(false);
   const answerReceived = useRef(false);
+  const peerDisconnected = useRef(false);
   const user = JSON.parse(localStorage.getItem("user"));
 
   const toggleMute = () => {
@@ -73,7 +74,7 @@ export default function JoinSession() {
         const { data } = await axios.get(`http://localhost:5000/sessions/${sessionId}`);
         setSessionInfo(data);
 
-        // Récupérer les informations des participants
+        // Get the participants
         const mentorId = data.scheduled_by;
         const learnerId = data.scheduled_with;
 
@@ -102,28 +103,48 @@ export default function JoinSession() {
   }, [sessionId]);
 
   const leaveSession = () => {
-    if (peerRef.current) {
-      peerRef.current.destroy();
-      peerRef.current = null;
-    }
+    // Destroy the Peer connection
+    peerRef.current?.destroy();
+    peerRef.current = null;
+
+    // Clean socket
     if (socketRef.current) {
-      socketRef.current.off("peer-joined");
-      socketRef.current.off("signal");
-      socketRef.current.off("users-in-session");
+      socketRef.current.emit("leave-session", sessionId);
+      ["peer-joined", "signal", "users-in-session", "peer-disconnected"].forEach(event =>
+        socketRef.current.off(event)
+      );
       socketRef.current.disconnect();
       socketRef.current = null;
     }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
+
+    //local stream
+    streamRef.current?.getTracks().forEach(track => track.stop());
+    streamRef.current = null;
+
+    //State
     setCallEnded(true);
     setCallAccepted(false);
-    navigate('/sessions');
+    offerReceived.current = false;
+    answerReceived.current = false;
+    peerDisconnected.current = false;
+
+    // Redirection
+    navigate("/sessions");
   };
 
   useEffect(() => {
     async function init() {
+      setCallAccepted(false);
+      setCallEnded(false);
+      offerReceived.current = false;
+      answerReceived.current = false;
+      peerDisconnected.current = false;
+
+      if (peerRef.current) {
+        peerRef.current.destroy();
+        peerRef.current = null;
+      }
+
       // Get user media
       const stream = await navigator.mediaDevices.getUserMedia({
         video: true,
@@ -137,7 +158,9 @@ export default function JoinSession() {
 
       // If you are the second to join, you are the initiator
       socketRef.current.on("peer-joined", () => {
-        if (peerRef.current) return;
+        if (peerRef.current) {
+          return;
+        }
 
         const peer = new SimplePeer({
           initiator: true,
@@ -154,6 +177,16 @@ export default function JoinSession() {
           if (remoteVideo.current) remoteVideo.current.srcObject = remoteStream;
           setCallAccepted(true);
           setCallEnded(false);
+        });
+
+        // Add connection state monitoring
+        peer.on("close", () => {
+          setCallAccepted(false);
+          setCallEnded(true);
+          if (peerRef.current) {
+            peerRef.current.destroy();
+            peerRef.current = null;
+          }
         });
       });
 
@@ -178,6 +211,16 @@ export default function JoinSession() {
             setCallEnded(false);
           });
 
+          // Add connection state monitoring
+          peer.on("close", () => {
+            setCallAccepted(false);
+            setCallEnded(true);
+            if (peerRef.current) {
+              peerRef.current.destroy();
+              peerRef.current = null;
+            }
+          });
+
           try {
             peer.signal(signal);
             offerReceived.current = true;
@@ -186,10 +229,18 @@ export default function JoinSession() {
           }
         } else {
           // Existing peer: forward signal, ignore duplicates
-          if (signal.type === "offer" && offerReceived.current) return;
-          if (signal.type === "offer") offerReceived.current = true;
-          if (signal.type === "answer" && answerReceived.current) return;
-          if (signal.type === "answer") answerReceived.current = true;
+          if (signal.type === "offer" && offerReceived.current) {
+            return;
+          }
+          if (signal.type === "offer") {
+            offerReceived.current = true;
+          }
+          if (signal.type === "answer" && answerReceived.current) {
+            return;
+          }
+          if (signal.type === "answer") {
+            answerReceived.current = true;
+          }
           if (peerRef.current && !peerRef.current.destroyed) {
             try {
               peerRef.current.signal(signal);
@@ -200,28 +251,27 @@ export default function JoinSession() {
         }
       });
 
-    }
+      socketRef.current.on("peer-disconnected", () => {
+        if (peerDisconnected.current) {
+          return;
+        }
+        peerDisconnected.current = true;
 
+        if (peerRef.current) {
+          peerRef.current.destroy();
+          peerRef.current = null;
+        }
+        if (remoteVideo.current) {
+          remoteVideo.current.srcObject = null;
+        }
+        setCallAccepted(false);
+        setCallEnded(true);
+      });
+    }
 
     init();
 
-    return () => {
-      if (peerRef.current) {
-        peerRef.current.destroy();
-        peerRef.current = null;
-      }
-      if (socketRef.current) {
-        socketRef.current.off("peer-joined");
-        socketRef.current.off("signal");
-        socketRef.current.off("users-in-session");
-        socketRef.current.disconnect();
-        socketRef.current = null;
-      }
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-        streamRef.current = null;
-      }
-    };
+
   }, [sessionId]);
 
   const isMentor = sessionInfo?.scheduled_by === user.id;
