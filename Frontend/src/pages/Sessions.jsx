@@ -64,11 +64,7 @@ export default function Sessions() {
     }
   };
 
-  const canJoinSession = (session) => {
-    const sessionDateTime = new Date(`${session.date}T${session.start_time}`);
-    const now = new Date();
-    return now >= new Date(sessionDateTime.getTime() - 10 * 60000);
-  };
+  const canJoinSession = () => true;
 
   const getSessionEndDate = (session) => {
     const endTime = session.end_time || session.start_time;
@@ -207,7 +203,7 @@ export default function Sessions() {
                     </div>
 
                     {session.mode === 'online' ? (
-                      canJoinSession(session) ? (
+                      canJoinSession() ? (
                         <Button
                           className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
                           onClick={() => {

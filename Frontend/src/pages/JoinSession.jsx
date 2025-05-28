@@ -23,6 +23,7 @@ export default function JoinSession() {
   const answerReceived = useRef(false);
   const peerDisconnected = useRef(false);
   const user = JSON.parse(localStorage.getItem("user"));
+  const [skillRequest, setSkillRequest] = useState(null);
 
   const toggleMute = () => {
 
@@ -69,38 +70,45 @@ export default function JoinSession() {
   };
 
   useEffect(() => {
-    const fetchSessionInfo = async () => {
+    async function fetchAll() {
       try {
-        const { data } = await axios.get(`http://localhost:5000/sessions/${sessionId}`);
-        setSessionInfo(data);
+        // Get session info
+        const { data: session } = await axios.get(`http://localhost:5000/sessions/${sessionId}`);
+        setSessionInfo(session);
 
-        // Get the participants
-        const mentorId = data.scheduled_by;
-        const learnerId = data.scheduled_with;
+        // Get skill request
+        const { data: skillRequests } = await axios.get(`http://localhost:5000/skills/skill-requests/user/${user.id}`);
+        const req = skillRequests.find(r => r.id === session.skill_request_id);
+        setSkillRequest(req);
 
-        const [mentorData, learnerData] = await Promise.all([
-          axios.get(`http://localhost:5000/users/${mentorId}`),
-          axios.get(`http://localhost:5000/users/${learnerId}`)
+        // Get participants
+        const [userA, userB] = await Promise.all([
+          axios.get(`http://localhost:5000/users/${session.scheduled_by}`),
+          axios.get(`http://localhost:5000/users/${session.scheduled_with}`)
         ]);
 
-        setParticipants([
+        // Assign roles based on receiver_id in skillRequest
+        const participantsArr = [
           {
-            id: mentorId,
-            name: `${mentorData.data.first_name} ${mentorData.data.last_name}`,
-            role: 'Mentor'
+            id: userA.data.id,
+            name: `${userA.data.first_name} ${userA.data.last_name}`,
+            role: req ? (userA.data.id === req.receiver_id ? 'Mentor' : 'Learner') : null
           },
           {
-            id: learnerId,
-            name: `${learnerData.data.first_name} ${learnerData.data.last_name}`,
-            role: 'Learner'
+            id: userB.data.id,
+            name: `${userB.data.first_name} ${userB.data.last_name}`,
+            role: req ? (userB.data.id === req.receiver_id ? 'Mentor' : 'Learner') : null
           }
-        ]);
+        ];
+        setParticipants(participantsArr);
       } catch (error) {
-        console.error("Error fetching session info:", error);
+        console.error("Error fetching session or participants info:", error);
       }
-    };
-    fetchSessionInfo();
-  }, [sessionId]);
+    }
+    fetchAll();
+  }, [sessionId, user.id]);
+
+  const isMentor = skillRequest && skillRequest.receiver_id === user.id;
 
   const leaveSession = () => {
     // Destroy the Peer connection
@@ -274,8 +282,6 @@ export default function JoinSession() {
 
   }, [sessionId]);
 
-  const isMentor = sessionInfo?.scheduled_by === user.id;
-
   return (
     <div className="min-h-screen bg-[#111B23] text-white p-8">
       <div className="max-w-6xl mx-auto">
@@ -405,14 +411,23 @@ export default function JoinSession() {
               <h3 className="text-sm font-medium text-gray-400 mb-3">Session Participants:</h3>
               <div className="flex gap-4">
                 {participants.map((participant) => (
-                  <div key={`${participant.id}-${participant.role}`} className="bg-[#1a2634] px-4 py-2 rounded-lg text-sm flex items-center gap-2">
+                  <div key={`${participant.id}-${participant.role}`} className="bg-[#181f25] px-4 py-2 rounded-lg text-sm flex items-center gap-2">
                     <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                     <div>
-                      <div className="font-medium">{participant.name}</div>
-                      <div className={`text-xs ${participant.role === 'Mentor' ? 'text-green-400' : 'text-blue-400'}`}>
-                        {participant.role}
+                      <div className="font-medium flex items-center gap-2">
+                        {participant.name}
+                        {participant.role ? (
+                          <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-semibold
+                            ${participant.role === 'Mentor' ? 'bg-green-600 text-white' : 'bg-blue-600 text-white'}`}>
+                            {participant.role}
+                          </span>
+                        ) : (
+                          <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-500 text-white animate-pulse">
+                            ...
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
