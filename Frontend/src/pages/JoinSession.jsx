@@ -31,14 +31,31 @@ export default function JoinSession() {
   const [showChat, setShowChat] = useState(false);
   const [hasUnreadChat, setHasUnreadChat] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [isCameraOff, setIsCameraOff] = useState(false);
+  const [isRemoteCameraOff, setIsRemoteCameraOff] = useState(false);
 
   const toggleMute = () => {
-
       if (peerRef.current) {
         peerRef.current.streams[0].getAudioTracks()[0].enabled = isMuted;
       }
-
       setIsMuted(!isMuted);
+  };
+
+  const toggleCamera = async () => {
+    if (streamRef.current) {
+      const videoTrack = streamRef.current.getVideoTracks()[0];
+      if (videoTrack) videoTrack.enabled = isCameraOff;
+      if (peerRef.current && !isCameraOff) {
+        const sender = peerRef.current._pc.getSenders().find(s => s.track && s.track.kind === 'video');
+        if (sender) {
+          await sender.replaceTrack(videoTrack);
+        }
+      }
+    }
+    setIsCameraOff(!isCameraOff);
+    if (socketRef.current) {
+      socketRef.current.emit('camera-toggle', { sessionId, isOff: !isCameraOff });
+    }
   };
 
   const startScreenShare = async () => {
@@ -334,8 +351,37 @@ export default function JoinSession() {
     return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
   }, []);
 
+  // refresh local video stream on fullscreen toggle to avoid black camera
+  useEffect(() => {
+    if (!isCameraOff &&localVideo.current && streamRef.current) {
+      localVideo.current.srcObject = streamRef.current;
+    }
+  }, [isFullScreen,isCameraOff]);
+
+  // Listen for remote camera toggle
+  useEffect(() => {
+    if (!socketRef.current) return;
+    const handleRemoteCameraToggle = (data) => {
+      setIsRemoteCameraOff(data.isOff);
+    };
+    socketRef.current.on('camera-toggle', handleRemoteCameraToggle);
+    return () => {
+      socketRef.current?.off('camera-toggle', handleRemoteCameraToggle);
+    };
+  }, [socketRef.current]);
+
+  //When remote camera is turned on, force the remote stream to the video tag
+  useEffect(() => {
+    if (!isRemoteCameraOff && remoteVideo.current && peerRef.current) {
+      const remoteStreams = peerRef.current.streams;
+      if (remoteStreams && remoteStreams[0]) {
+        remoteVideo.current.srcObject = remoteStreams[0];
+      }
+    }
+  }, [isRemoteCameraOff]);
+
   return (
-    <div className=" main flex flex-col md:flex-row min-h-screen bg-[#111B23] text-white">
+    <div className={`main flex flex-col md:flex-row min-h-screen bg-[#111B23] text-white${isFullScreen ? ' fullscreen-active' : ''}`}>
       {/* Main video area */}
       <div className="flex-1 flex flex-col p-4 md:p-8 min-h-0">
         <div className="w-full flex-1  flex flex-col min-h-0">
@@ -364,55 +410,112 @@ export default function JoinSession() {
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-          <div className="bg-[#181f25] rounded-lg p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  <h2 className="text-lg font-semibold">
-                    {participants.length > 0 && participants.find(p => p.id !== user.id)?.name}
-                  </h2>
+          <div className={`relative ${isFullScreen ? 'flex flex-row gap-0 mb-0 h-[80vh]' : 'grid grid-cols-1 md:grid-cols-2 gap-8 mb-8'}`}>
+            {/* Remote video (partenaire) */}
+            <div className={`bg-[#181f25] rounded-lg ${isFullScreen ? 'flex-1 p-0 h-full flex items-center justify-center relative' : 'p-4'}`}
+              style={isFullScreen ? { minHeight: 0 } : {}}>
+              {/* Overlay nom du partenaire en plein écran */}
+              {isFullScreen && (
+                <div className="absolute top-4 left-4 z-50 bg-black/60 text-white text-lg font-semibold px-4 py-2 rounded shadow">
+                  {participants.length > 0 && participants.find(p => p.id !== user.id)?.name}
                 </div>
-                <div className={`px-3 py-1 rounded-full text-sm ${!isMentor ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}`}>
-                  {!isMentor ? 'Mentor' : 'Learner'}
-                </div>
-              </div>
-              <video
-                ref={remoteVideo}
-                autoPlay
-                playsInline
-                className="w-full aspect-video bg-black rounded-lg"
-              />
-            </div>
-
-            <div className="bg-[#181f25] rounded-lg p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  <h2 className="text-lg font-semibold">You</h2>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className={`px-3 py-1 rounded-full text-sm ${isMentor ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}`}>
-                    {isMentor ? 'Mentor' : 'Learner'}
+              )}
+              {!isFullScreen && (
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    <h2 className="text-lg font-semibold">
+                      {participants.length > 0 && participants.find(p => p.id !== user.id)?.name}
+                    </h2>
+                  </div>
+                  <div className={`px-3 py-1 rounded-full text-sm ${!isMentor ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                    {!isMentor ? 'Mentor' : 'Learner'}
                   </div>
                 </div>
-              </div>
-              <video
-                ref={localVideo}
-                autoPlay
-                muted
-                playsInline
-                className="w-full aspect-video bg-black rounded-lg"
-              />
+              )}
+              {isRemoteCameraOff ? (
+                <div className={`bg-black rounded-lg flex items-center justify-center ${isFullScreen ? 'w-full h-full' : 'w-full aspect-video'}`}
+                  style={isFullScreen ? { minHeight: 0, maxHeight: '100%' } : {}}>
+                  <svg className="w-16 h-16 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <rect x="3" y="7" width="15" height="10" rx="2" ry="2" strokeWidth="2" />
+                    <path d="M21 7v10l-4-4" strokeWidth="2" />
+                    <line x1="4" y1="4" x2="20" y2="20" stroke="red" strokeWidth="2" />
+                  </svg>
+                </div>
+              ) : (
+                <video
+                  ref={remoteVideo}
+                  autoPlay
+                  playsInline
+                  className={`bg-black rounded-lg ${isFullScreen ? 'w-full h-full object-contain' : 'w-full aspect-video'}`}
+                  style={isFullScreen ? { minHeight: 0, maxHeight: '100%' } : {}}
+                />
+              )}
             </div>
-
+            {/* Local video (You) */}
+            {isFullScreen ? (
+              <div className="absolute bottom-6 right-6 z-40 w-64 max-w-[30vw]">
+                {isCameraOff ? (
+                  <div className="w-full aspect-video bg-black rounded-lg flex items-center justify-center">
+                    <svg className="w-12 h-12 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <rect x="3" y="7" width="15" height="10" rx="2" ry="2" strokeWidth="2" />
+                      <path d="M21 7v10l-4-4" strokeWidth="2" />
+                      <line x1="4" y1="4" x2="20" y2="20" stroke="red" strokeWidth="2" />
+                    </svg>
+                  </div>
+                ) : (
+                  <video
+                    ref={localVideo}
+                    autoPlay
+                    muted
+                    playsInline
+                    className="rounded-lg bg-black shadow-lg w-full aspect-video border-4 border-white"
+                    style={{ minWidth: 0 }}
+                  />
+                )}
+                <div className="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
+                  You
+                </div>
+              </div>
+            ) : (
+              <div className="bg-[#181f25] rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    <h2 className="text-lg font-semibold">You</h2>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className={`px-3 py-1 rounded-full text-sm ${isMentor ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                      {isMentor ? 'Mentor' : 'Learner'}
+                    </div>
+                  </div>
+                </div>
+                {isCameraOff ? (
+                  <div className="w-full aspect-video bg-black rounded-lg flex items-center justify-center">
+                    <svg className="w-12 h-12 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <rect x="3" y="7" width="15" height="10" rx="2" ry="2" strokeWidth="2" />
+                      <path d="M21 7v10l-4-4" strokeWidth="2" />
+                      <line x1="4" y1="4" x2="20" y2="20" stroke="red" strokeWidth="2" />
+                    </svg>
+                  </div>
+                ) : (
+                  <video
+                    ref={localVideo}
+                    autoPlay
+                    muted
+                    playsInline
+                    className="w-full aspect-video bg-black rounded-lg"
+                  />
+                )}
+              </div>
+            )}
           </div>
 
-          <div className="fixed z-50 h-[54px] bottom-6 flex md:flex-row flex-col md:items-center gap-4 bg-[#232e39] w-fit rounded-lg px-4 py-3 shadow">
+          <div className="fixed z-50 h-[54px] bottom-6 flex md:flex-row flex-col md:items-center gap-4 bg-[#232e39] w-fit rounded-lg px-4 py-3 shadow-xl">
             {/* Status indicator */}
             <div className="flex gap-2 items-center">
             <span className={`w-3 h-3 rounded-full inline-block shadow
@@ -515,9 +618,26 @@ export default function JoinSession() {
           )}
         </Button>
         <Button
+          onClick={toggleCamera}
+          className={`w-10 h-10 p-0 rounded-full text-2xl flex items-center justify-center shadow-lg transition active:scale-95 ${isCameraOff ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'}`}
+          title={isCameraOff ? "Enable camera" : "Disable camera"}
+        >
+          {isCameraOff ? (
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              <line x1="4" y1="4" x2="20" y2="20" stroke="red" strokeWidth="2" />
+            </svg>
+          ) : (
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <rect x="3" y="7" width="15" height="10" rx="2" ry="2" strokeWidth="2" />
+              <path d="M21 7v10l-4-4" strokeWidth="2" />
+            </svg>
+          )}
+        </Button>
+        <Button
           onClick={isScreenSharing ? stopScreenShare : startScreenShare}
           className={`w-10 h-10 p-0 rounded-full text-2xl flex items-center justify-center shadow-lg transition active:scale-95 ${isScreenSharing ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-blue-500 hover:bg-blue-600'}`}
-          title={isScreenSharing ? "Arrêter le partage d'écran" : "Partager l'écran"}
+          title={isScreenSharing ? "Stop screen sharing" : "Share screen"}
         >
           {isScreenSharing ? (
             <svg className="w-8 h-8" fill="red" viewBox="0 0 24 24">
@@ -570,4 +690,5 @@ export default function JoinSession() {
     </div>
   );
 }
+
 

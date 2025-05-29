@@ -35,6 +35,10 @@ io.on("connection", socket => {
     socket.to(sessionId).emit("signal", data);
   });
 
+  socket.on("camera-toggle", (data) => {
+    socket.to(data.sessionId).emit("camera-toggle", data);
+  });
+
 socket.on("leave-session", sessionId => {
   socket.leave(sessionId);
 
