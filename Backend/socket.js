@@ -62,6 +62,10 @@ socket.on("leave-session", sessionId => {
       }
     }
   });
+
+  socket.on("chat-message", (msg) => {
+    io.to(msg.sessionId).emit("chat-message", msg);
+  });
 });
 
 const PORT = 4000;
