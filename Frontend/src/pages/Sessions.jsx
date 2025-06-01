@@ -3,7 +3,8 @@ import axios from "axios";
 import { Button } from "../components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogClose } from "@/components/ui/dialog";
+import { Toaster } from "sonner";
 
 const getSessionEndDate = (session) => {
   const endTime = session.end_time || session.start_time;
@@ -35,11 +36,17 @@ export default function Sessions() {
         setLoading(true);
         // Fetch sessions
         const { data: sessionsData } = await axios.get(`http://localhost:5000/sessions/user/${user.id}`);
-        const sortedSessions = sessionsData.sort((a, b) => new Date(a.date) - new Date(b.date));
-        setSessions(sortedSessions);
-
         // Fetch skill requests
         const { data: skillRequestsData } = await axios.get(`http://localhost:5000/skills/skill-requests/user/${user.id}`);
+
+        // Enrichis chaque session avec isMentor
+        const enrichedSessions = sessionsData.map(session => {
+          const skillRequest = skillRequestsData.find(r => r.id === session.skill_request_id);
+          const isMentor = skillRequest && skillRequest.receiver_id === user.id;
+          return { ...session, isMentor };
+        });
+
+        setSessions(enrichedSessions);
         setSkillRequests(skillRequestsData);
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -50,16 +57,7 @@ export default function Sessions() {
     fetchAll();
   }, [user.id]);
 
-  useEffect(() => {
-    const rateSessionId = localStorage.getItem('rateSessionId');
-    if (rateSessionId && pastSessions.length > 0) {
-      const sessionToRate = pastSessions.find(s => s.id === rateSessionId);
-      if (sessionToRate) {
-        setMentorId(sessionToRate.mentor_id);
-        localStorage.removeItem('rateSessionId');
-      }
-    }
-  }, [pastSessions]);
+
 
   const formatDate = (dateStr) => {
     const date = new Date(dateStr);
@@ -100,15 +98,36 @@ export default function Sessions() {
 
   const canJoinSession = () => true;
 
-  const submitRating = async (e) => {
-    e.preventDefault();
-    await axios.post(`http://localhost:5000/users/${mentorId}/rate`, { rating });
-    setRating(0);
-    // Optionally, refresh sessions or show a toast here
+  const submitRating = async (sessionId) => {
+    try {
+      await axios.post(`http://localhost:5000/users/${mentorId}/rate`, { rating });
+      //update session
+      await axios.patch(`http://localhost:5000/sessions/${sessionId}/rate`, { rating });
+      // refresh sessions
+      const { data: sessionsData } = await axios.get(`http://localhost:5000/sessions/user/${user.id}`);
+      setSessions(sessionsData);
+      setRating(0);
+      toast.success(`Thank you for rating your mentor ${rating} stars!`, {
+        duration: 4000,
+        position: "bottom-center",
+        style: {
+          background: "#181f25",
+          color: "white",
+          border: "1px solid #232e39"
+        }
+      });
+    } catch (error) {
+      console.error('Error submitting rating:', error);
+      toast.error('Failed to submit rating');
+    }
   };
 
   const sortedPastSessions = [...pastSessions].sort(
     (a, b) => getSessionEndDate(b) - getSessionEndDate(a)
+  );
+
+  const hasPendingRating = sortedPastSessions.some(
+    session => !session.isMentor && (!session.rated || !session.given_rating)
   );
 
   if (loading) {
@@ -207,15 +226,9 @@ export default function Sessions() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                         </svg>
                         <h3 className="text-xl font-semibold text-blue-400">{session.skill_name}</h3>
-                        {(() => {
-                          const skillRequest = skillRequests.find(r => r.id === session.skill_request_id);
-                          const isMentor = skillRequest && skillRequest.receiver_id === user.id;
-                          return (
-                            <div className={`px-3 py-1 rounded-full text-sm ${isMentor ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}`}>
-                              {isMentor ? 'Teaching' : 'Learning'}
-                            </div>
-                          );
-                        })()}
+                        <div className={`px-3 py-1 rounded-full text-sm ${session.isMentor ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                          {session.isMentor ? 'Teaching' : 'Learning'}
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-2 text-gray-300">
@@ -279,6 +292,11 @@ export default function Sessions() {
         {sortedPastSessions.length > 0 && (
           <div className="mt-10">
             <h2 className="text-xl font-semibold mb-4 text-gray-400">Past Sessions</h2>
+            {hasPendingRating && (
+              <div className="mb-4 p-4 bg-[#232e39] border-l-4 border-blue-500 text-blue-300 rounded">
+                You have past sessions that you haven't rated yet. Please consider leaving feedback for your mentor!
+              </div>
+            )}
             <div className="space-y-4">
               {sortedPastSessions.map(session => (
                 <div key={session.id} className="bg-[#181f25] rounded-lg p-6 opacity-70">
@@ -289,15 +307,10 @@ export default function Sessions() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                         </svg>
                         <h3 className="text-xl font-semibold text-gray-400">{session.skill_name}</h3>
-                        {(() => {
-                          const skillRequest = skillRequests.find(r => r.id === session.skill_request_id);
-                          const isMentor = skillRequest && skillRequest.receiver_id === user.id;
-                          return (
-                            <div className={`px-3 py-1 rounded-full text-sm ${isMentor ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}`}>
-                              {isMentor ? 'Teaching' : 'Learning'}
-                            </div>
-                          );
-                        })()}
+                        <div className={`px-3 py-1 rounded-full text-sm ${session.isMentor ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                          {session.isMentor ? 'Teaching' : 'Learning'}
+                        </div>
+
                       </div>
                       <div className="flex items-center gap-2 text-gray-400">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -321,15 +334,31 @@ export default function Sessions() {
                         )}
                       </div>
                     </div>
-                    {!session.rated && (() => {
-                      const skillRequest = skillRequests.find(r => r.id === session.skill_request_id);
-                      const isMentor = skillRequest && skillRequest.receiver_id === user.id;
-                      return !isMentor && (
+                    {session.rated && session.given_rating ? (
+                      <div className="flex flex-col items-end">
+                        <div className="flex items-center gap-1">
+                          {[1,2,3,4,5].map(star => (
+                            <span
+                              key={star}
+                              className={star <= session.given_rating ? 'text-yellow-400 text-2xl' : 'text-gray-400 text-2xl'}
+                            >★</span>
+                          ))}
+                        </div>
+                        <span className="text-xs mt-1 text-gray-400 italic">
+                          {session.isMentor ? "You have been rated" : "Rating submitted"}
+                        </span>
+                      </div>
+                    ) : (
+                      !session.isMentor && (
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button
-                              className="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-2 rounded-lg font-medium transition-colors"
-                              onClick={() => setMentorId(session.mentor_id)}
+                              className="bg-white hover:bg-transparent hover:text-white text-black border border-white px-6 py-2 rounded-lg font-medium transition-colors"
+                              onClick={() => {
+                                setMentorId(
+                                  skillRequests.find(r => r.id === session.skill_request_id)?.receiver_id
+                                );
+                              }}
                             >
                               Rate Mentor
                             </Button>
@@ -338,10 +367,7 @@ export default function Sessions() {
                             <DialogHeader>
                               <DialogTitle>Rate your mentor</DialogTitle>
                             </DialogHeader>
-                            <form
-                              onSubmit={submitRating}
-                              className="flex flex-col items-center gap-4"
-                            >
+                            <div className="flex flex-col items-center gap-4">
                               <div className="flex gap-2 justify-center my-4">
                                 {[1,2,3,4,5].map(star => (
                                   <Button
@@ -355,22 +381,22 @@ export default function Sessions() {
                                   </Button>
                                 ))}
                               </div>
-                            </form>
+                            </div>
                             <DialogFooter>
-                              <Button
-                                type="submit"
-                                form="rate-form"
-                                disabled={rating === 0}
-                                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                                onClick={submitRating}
-                              >
-                                Submit
-                              </Button>
+                              <DialogClose asChild>
+                                <Button
+                                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                                  onClick={() => submitRating(session.id)}
+                                  disabled={rating === 0}
+                                >
+                                  Submit
+                                </Button>
+                              </DialogClose>
                             </DialogFooter>
                           </DialogContent>
                         </Dialog>
-                      );
-                    })()}
+                      )
+                    )}
                   </div>
                 </div>
               ))}
@@ -378,6 +404,7 @@ export default function Sessions() {
           </div>
         )}
       </div>
+      <Toaster />
     </div>
   );
 }

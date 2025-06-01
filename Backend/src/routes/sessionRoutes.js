@@ -180,4 +180,25 @@ router.patch('/:sessionId', async (req, res) => {
   }
 });
 
+// Rate a session
+router.patch('/:id/rate', async (req, res) => {
+  const sessionId = req.params.id;
+  const { rating } = req.body;
+  if (!rating) {
+    return res.status(400).json({ error: 'Invalid rating' });
+  }
+  try {
+    const { data, error } = await supabase
+      .from('sessions')
+      .update({ rated: true, given_rating: rating })
+      .eq('id', sessionId)
+      .select()
+      .single();
+    if (error) throw error;
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

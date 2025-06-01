@@ -484,30 +484,45 @@ router.get('/:id', async (req, res) => {
 router.post('/:id/rate', async (req, res) => {
   const { rating } = req.body;
   const userId = req.params.id;
+
   if (!rating || rating < 1 || rating > 5) {
     return res.status(400).json({ error: 'Invalid rating' });
   }
+
   try {
     // Fetch current rating and count
-    const { data: user, error } = await supabase
+    const { data: user, error: fetchError } = await supabase
       .from('users')
       .select('rating, rating_count')
       .eq('id', userId)
       .single();
 
-    if (error || !user) return res.status(404).json({ error: 'User not found' });
+    if (fetchError) {
+      console.error('Error fetching user:', fetchError);
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
 
     const newCount = (user.rating_count || 0) + 1;
     const newRating = ((user.rating || 0) * (user.rating_count || 0) + rating) / newCount;
 
     // Update user
-    await supabase
+    const { error: updateError } = await supabase
       .from('users')
       .update({ rating: newRating, rating_count: newCount })
       .eq('id', userId);
 
+    if (updateError) {
+      console.error('Error updating user rating:', updateError);
+      return res.status(500).json({ error: 'Failed to update rating' });
+    }
+
     res.json({ success: true, rating: newRating, rating_count: newCount });
   } catch (err) {
+    console.error('Server error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
