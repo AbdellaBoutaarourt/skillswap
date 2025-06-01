@@ -32,7 +32,7 @@ export default function JoinSession() {
   const [hasUnreadChat, setHasUnreadChat] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
-  const [isRemoteCameraOff, setIsRemoteCameraOff] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
 
   const toggleMute = () => {
       if (peerRef.current) {
@@ -41,21 +41,19 @@ export default function JoinSession() {
       setIsMuted(!isMuted);
   };
 
-  const toggleCamera = async () => {
+  const toggleCamera = () => {
     if (streamRef.current) {
       const videoTrack = streamRef.current.getVideoTracks()[0];
-      if (videoTrack) videoTrack.enabled = isCameraOff;
-      if (peerRef.current && !isCameraOff) {
+      if (videoTrack) {
+        videoTrack.enabled = isCameraOff;
         const sender = peerRef.current._pc.getSenders().find(s => s.track && s.track.kind === 'video');
         if (sender) {
-          await sender.replaceTrack(videoTrack);
-        }
+           sender.replaceTrack(videoTrack)
+          } ;
       }
     }
     setIsCameraOff(!isCameraOff);
-    if (socketRef.current) {
-      socketRef.current.emit('camera-toggle', { sessionId, isOff: !isCameraOff });
-    }
+
   };
 
   const startScreenShare = async () => {
@@ -331,12 +329,10 @@ export default function JoinSession() {
 
   const sendMessage = (e) => {
     e.preventDefault();
-    if (!chatInput.trim() || !socketRef.current) return;
     const msg = {
-      user: (user?.first_name && user?.last_name)
-        ? user.first_name + " " + user.last_name
-        : user?.username || "Unknown",
+      user: user.username,
       text: chatInput,
+      avatar: user.avatar,
       time: dayjs().format("HH:mm"),
     };
     socketRef.current.emit("chat-message", { sessionId, ...msg });
@@ -358,27 +354,15 @@ export default function JoinSession() {
     }
   }, [isFullScreen,isCameraOff]);
 
-  // Listen for remote camera toggle
   useEffect(() => {
-    if (!socketRef.current) return;
-    const handleRemoteCameraToggle = (data) => {
-      setIsRemoteCameraOff(data.isOff);
-    };
-    socketRef.current.on('camera-toggle', handleRemoteCameraToggle);
-    return () => {
-      socketRef.current?.off('camera-toggle', handleRemoteCameraToggle);
-    };
-  }, [socketRef.current]);
-
-  //When remote camera is turned on, force the remote stream to the video tag
-  useEffect(() => {
-    if (!isRemoteCameraOff && remoteVideo.current && peerRef.current) {
-      const remoteStreams = peerRef.current.streams;
-      if (remoteStreams && remoteStreams[0]) {
-        remoteVideo.current.srcObject = remoteStreams[0];
+    const interval = setInterval(() => {
+      if (dayjs().isAfter(dayjs(sessionInfo.end_time))) {
+        alert("You have exceeded the scheduled end time of the session!");
+        clearInterval(interval);
       }
-    }
-  }, [isRemoteCameraOff]);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [sessionInfo]);
 
   return (
     <div className={`main flex flex-col md:flex-row min-h-screen bg-[#111B23] text-white${isFullScreen ? ' fullscreen-active' : ''}`}>
@@ -393,9 +377,14 @@ export default function JoinSession() {
               <div>
                 <h1 className="text-2xl font-bold">Skill Swap Session</h1>
                 {sessionInfo && (
-                  <p className="text-gray-400 text-sm mt-1">
-                    Learning: <span className="text-blue-400">{sessionInfo.skill_name}</span>
-                  </p>
+                  <div className="text-xs text-gray-400 flex gap-4 mt-2">
+                    <span>
+                      Start: {sessionInfo.start_time.slice(0, 5)}
+                    </span>
+                    <span>
+                      End: {sessionInfo.end_time.slice(0, 5)}
+                    </span>
+                  </div>
                 )}
               </div>
             </div>
@@ -435,16 +424,6 @@ export default function JoinSession() {
                   </div>
                 </div>
               )}
-              {isRemoteCameraOff ? (
-                <div className={`bg-black rounded-lg flex items-center justify-center ${isFullScreen ? 'w-full h-full' : 'w-full aspect-video'}`}
-                  style={isFullScreen ? { minHeight: 0, maxHeight: '100%' } : {}}>
-                  <svg className="w-16 h-16 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <rect x="3" y="7" width="15" height="10" rx="2" ry="2" strokeWidth="2" />
-                    <path d="M21 7v10l-4-4" strokeWidth="2" />
-                    <line x1="4" y1="4" x2="20" y2="20" stroke="red" strokeWidth="2" />
-                  </svg>
-                </div>
-              ) : (
                 <video
                   ref={remoteVideo}
                   autoPlay
@@ -452,7 +431,6 @@ export default function JoinSession() {
                   className={`bg-black rounded-lg ${isFullScreen ? 'w-full h-full object-contain' : 'w-full aspect-video'}`}
                   style={isFullScreen ? { minHeight: 0, maxHeight: '100%' } : {}}
                 />
-              )}
             </div>
             {/* Local video (You) */}
             {isFullScreen ? (
@@ -515,9 +493,11 @@ export default function JoinSession() {
             )}
           </div>
 
-          <div className="fixed z-50 h-[54px] bottom-6 flex md:flex-row flex-col md:items-center gap-4 bg-[#232e39] w-fit rounded-lg px-4 py-3 shadow-xl">
-            {/* Status indicator */}
-            <div className="flex gap-2 items-center">
+
+        </div>
+        <div>
+        <div className="fixed bottom-6 left-6 z-50 flex items-center gap-4">
+          <div className="flex gap-2 items-center bg-[#232e39] rounded-lg px-4 py-2">
             <span className={`w-3 h-3 rounded-full inline-block shadow
               ${callEnded ? 'bg-red-500' : callAccepted ? 'bg-green-500' : 'bg-yellow-500'}`}></span>
             <span className={`text-sm font-semibold
@@ -528,70 +508,55 @@ export default function JoinSession() {
                   ? "Connected"
                   : "Waiting..."}
             </span>
-            </div>
-            {/* Skill */}
-            {sessionInfo && (
-              <span className="text-xs text-gray-400">
-                Skill: <span className="text-blue-400">{sessionInfo.skill_name}</span>
-              </span>
-            )}
-            {/* Participants */}
-            {participants.length > 0 && (
-              <span className="flex gap-2 text-xs md:flex-row flex-col w-fit">
-                {participants.map((p) => (
-                  <span key={p.id} className={`px-2 py-1 rounded-full font-semibold shadow`}>
-                    {p.name} <Badge className={p.role === 'Mentor' ? 'bg-green-600 text-white' : 'bg-blue-600 text-white'}>{p.role}</Badge>
-                  </span>
-                ))}
-              </span>
-            )}
-
           </div>
-        </div>
-      </div>
-      {/* Chat sidebar */}
 
-      {showChat && (
-        <div className="fixed bottom-20 right-6 z-50 w-[90vw] max-w-xs md:max-w-md bg-[#181f25] border border-[#232e39] rounded-lg shadow-2xl flex flex-col h-[60vh]">
-          <h3 className="text-lg font-semibold p-4 flex items-center gap-2 border-b border-[#232e39]">
-            <span>Chat</span>
-            <button onClick={() => setShowChat(false)} className="ml-auto text-gray-400 hover:text-white">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </h3>
-          <div className="flex-1 overflow-y-auto flex flex-col gap-2 px-4 py-2 min-h-0">
-            {messages.map((msg, idx) => (
-              <div key={idx} className={`flex ${msg.self ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[70%] px-3 py-2 rounded-lg text-sm ${msg.self ? 'bg-blue-500 text-white' : 'bg-gray-700 text-white'}`}>
-                  <div className="font-semibold mb-1">{msg.user} <span className="text-xs text-gray-300">{msg.time}</span></div>
-                  <div>{msg.text}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-          <form
-            onSubmit={sendMessage}
-            className="flex gap-2 p-4 border-t border-[#232e39] bg-[#181f25]"
+          {/* button menu */}
+          <Button
+            onClick={() => setShowMenu(!showMenu)}
+            className="w-12 h-12 p-0 rounded-full text-2xl flex items-center justify-center shadow-lg bg-blue-600 hover:bg-blue-700 text-white transition active:scale-95"
+            title="Session Info"
           >
-            <input
-              className="flex-1 rounded bg-[#232e39] text-white px-3 py-2 outline-none text-sm"
-              value={chatInput}
-              onChange={e => setChatInput(e.target.value)}
-              placeholder="Type a message..."
-            />
-            <button
-              type="submit"
-              className="bg-blue-600 text-white px-4 py-2 rounded font-semibold text-sm"
-            >
-              Send
-            </button>
-          </form>
-        </div>
-      )}
+            <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </Button>
 
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#232e39] rounded-lg shadow-xl flex h-[54px] gap-4 px-6 py-2 items-center">
+          {showMenu && (
+            <div className="absolute bottom-16 left-0 bg-[#232e39] rounded-lg shadow-2xl p-4 flex flex-col gap-3 w-64">
+              {/* Skill */}
+              {sessionInfo && (
+                <div className="text-sm">
+                  <span className="text-gray-400">Skill: </span>
+                  <span className="text-blue-400">{sessionInfo.skill_name}</span>
+                </div>
+              )}
+              {sessionInfo && (
+                <div className="text-sm">
+                  <span className="text-gray-400">Time: </span>
+                  <span className="text-blue-400">
+                    {sessionInfo.start_time.slice(0, 5)} - {sessionInfo.end_time.slice(0, 5)}
+                  </span>
+                </div>
+              )}
+              {/* Participants */}
+              {participants.length > 0 && (
+                <div className="flex flex-col gap-2">
+                  <span className="text-sm text-gray-400">Participants:</span>
+                  {participants.map((p) => (
+                    <div key={p.id} className="flex items-center justify-between text-sm">
+                      <span className="text-white">{p.name}</span>
+                      <Badge className={p.role === 'Mentor' ? 'bg-green-600 text-white' : 'bg-blue-600 text-white'}>
+                        {p.role}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+      <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2  bg-[#232e39] rounded-lg shadow-xl flex h-[54px] gap-4 px-6 py-2 items-center">
         <Button
           onClick={leaveSession}
           className="w-10 h-10 p-0 rounded-full text-2xl flex items-center justify-center shadow-lg bg-red-500 hover:bg-red-600 text-white transition active:scale-95"
@@ -687,6 +652,81 @@ export default function JoinSession() {
           </Button>
         </div>
       </div>
+</div>
+      </div>
+      {/* Chat sidebar */}
+
+      {showChat && (
+        <div className="fixed bottom-20 right-6 z-50 w-[90vw] max-w-xs md:max-w-md bg-[#181f25] border border-[#232e39] rounded-lg shadow-2xl flex flex-col h-[60vh]">
+          <h3 className="text-lg font-semibold p-4 flex items-center gap-2 border-b border-[#232e39]">
+            <span>Chat</span>
+            <button onClick={() => setShowChat(false)} className="ml-auto text-gray-400 hover:text-white">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </h3>
+          <div className="flex-1 overflow-y-auto flex flex-col gap-2 px-4 py-2 min-h-0">
+            {messages.map((msg, idx) => (
+              <div
+                key={idx}
+                className={`flex ${msg.self ? 'justify-end' : 'justify-start'} items-center gap-2`}
+              >
+                {!msg.self && (
+                  <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-lg">
+                    <img src={msg.avatar} alt="avatar" className="w-full h-full object-cover rounded-full" />
+                  </div>
+                )}
+                <div className="flex flex-col max-w-[70%]">
+                  <span className="text-xs font-semibold text-gray-300 mb-1">
+                    {msg.user}
+                  </span>
+                  <div
+                    className={`px-4 py-2 rounded-2xl text-sm break-words ${
+                      msg.self
+                        ? 'bg-blue-500 text-white rounded-br-none'
+                        : 'bg-gray-700 text-white rounded-bl-none'
+                    }`}
+                  >
+                    {msg.text}
+                  </div>
+                  <span
+                    className={`text-xs text-gray-400 mt-1 ${
+                      msg.self ? 'text-right' : 'text-left'
+                    }`}
+                  >
+                    {msg.time}
+                  </span>
+                </div>
+                {msg.self && (
+                  <div className="w-8 h-8 rounded-full border-1 border-blue-500 flex items-center justify-center text-white font-bold text-lg">
+                    <img src={msg.avatar} alt="avatar" className="w-full h-full object-cover rounded-full" />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          <form
+            onSubmit={sendMessage}
+            className="flex gap-2 p-4 border-t border-[#232e39] bg-[#181f25]"
+          >
+            <input
+              className="flex-1 rounded bg-[#232e39] text-white px-3 py-2 outline-none text-sm"
+              value={chatInput}
+              onChange={e => setChatInput(e.target.value)}
+              placeholder="Type a message..."
+            />
+            <button
+              type="submit"
+              className="bg-blue-600 text-white px-4 py-2 rounded font-semibold text-sm"
+            >
+              Send
+            </button>
+          </form>
+        </div>
+      )}
+
+
     </div>
   );
 }
