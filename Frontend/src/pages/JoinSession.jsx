@@ -159,6 +159,7 @@ export default function JoinSession() {
     peerDisconnected.current = false;
 
     // Redirection
+    localStorage.setItem('rateSessionId', sessionId);
     navigate("/sessions");
   };
 

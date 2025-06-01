@@ -85,23 +85,23 @@ export default function SessionRequestMessage({ session, isReceiver, onAccept, o
         )}
         <div className={`text-center flex flex-col justify-center rounded-2xl px-4 py-3 ${senderIsCurrentUser ? 'bg-blue-500 text-white' : 'bg-[#232e39] text-white'}`}>
           {messageText}
-          {isReceiver && session.status === "pending" && (
+        {isReceiver && session.status === "pending" && (
             <div className="flex mt-4 justify-center gap-10 w-full">
-              <Button
+            <Button
                 className="bg-blue-500 text-white px-10 py-1 rounded-lg font-medium"
-                onClick={() => onAccept(session.id)}
-              >
-                Accept
-              </Button>
-              <Button
-                variant="outline"
+              onClick={() => onAccept(session.id)}
+            >
+              Accept
+            </Button>
+            <Button
+            variant="outline"
                 className="border-white cursor-pointer text-black rounded-lg font-medium px-10 transition hover:bg-white/10"
-                onClick={() => onDecline(session.id)}
-              >
-                Decline
-              </Button>
-            </div>
-          )}
+              onClick={() => onDecline(session.id)}
+            >
+              Decline
+            </Button>
+          </div>
+        )}
           {session.status === "accepted" && (
             <div className="flex justify-center mt-4">
               <span className="bg-green-500/20 text-green-400 px-4 py-1.5 rounded-full font-semibold text-sm flex items-center gap-2">

@@ -480,4 +480,36 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// Rate user
+router.post('/:id/rate', async (req, res) => {
+  const { rating } = req.body;
+  const userId = req.params.id;
+  if (!rating || rating < 1 || rating > 5) {
+    return res.status(400).json({ error: 'Invalid rating' });
+  }
+  try {
+    // Fetch current rating and count
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('rating, rating_count')
+      .eq('id', userId)
+      .single();
+
+    if (error || !user) return res.status(404).json({ error: 'User not found' });
+
+    const newCount = (user.rating_count || 0) + 1;
+    const newRating = ((user.rating || 0) * (user.rating_count || 0) + rating) / newCount;
+
+    // Update user
+    await supabase
+      .from('users')
+      .update({ rating: newRating, rating_count: newCount })
+      .eq('id', userId);
+
+    res.json({ success: true, rating: newRating, rating_count: newCount });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 module.exports = router;
