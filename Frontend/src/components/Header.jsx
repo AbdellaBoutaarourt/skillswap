@@ -74,7 +74,7 @@ const Header = () => {
   }
 
   return (
-    <header className="flex items-center justify-between px-6 py-2 border-b border-white font-poppins relative bg-[#101820]">
+    <header className="flex items-center justify-between px-6 py-2 border-b border-white font-poppins relative bg-[#111B23]">
       <div className="flex items-center space-x-2">
         <img src={logo} alt="Logo" />
       </div>

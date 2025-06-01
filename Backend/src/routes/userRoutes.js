@@ -403,10 +403,9 @@ router.get('/explore', async (req, res) => {
     const formattedUsers = users.map(user => ({
       id: user.id,
       name:  user.username,
-      role: Array.isArray(user.skills) && user.skills.length > 0 ? user.skills[0] : 'No skills listed',
       avatar: user.avatar_url,
-      rating: 0,
-      reviews: 0,
+      rating: user.rating || 0,
+      reviews: user.rating_count || 0,
       bio: user.bio || '',
       location: user.location || '',
       skills: Array.isArray(user.skills) ? user.skills : [],

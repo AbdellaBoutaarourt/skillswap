@@ -23,6 +23,7 @@ export default function Explore() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedSkill, setSelectedSkill] = useState("");
   const [existingRequests, setExistingRequests] = useState([]);
+  const [showFilters, setShowFilters] = useState(false);
 
   const fetchCategories = async () => {
     try {
@@ -87,7 +88,7 @@ export default function Explore() {
       const query = searchQuery.toLowerCase();
       filteredUsers = filteredUsers.filter(user =>
         (user.name && user.name.toLowerCase().includes(query)) ||
-        (user.role && user.role.toLowerCase().includes(query)) ||
+        (user.location && user.location.toLowerCase().includes(query)) ||
         (Array.isArray(user.skills) && user.skills.some(skill => skill && skill.toLowerCase().includes(query)))
       );
     }
@@ -139,6 +140,8 @@ export default function Explore() {
 
   return (
     <div className="flex min-h-screen bg-[#111B23] text-white">
+      {/* Mobile/Tablet Filters Button */}
+
       <aside className="w-64 p-6 border-r border-gray-800 hidden md:block">
         <h3 className="font-bold mb-4">Filters</h3>
         <div className="mb-6">
@@ -154,11 +157,16 @@ export default function Explore() {
                   type="checkbox"
                   checked={selectedCategories.includes(cat)}
                   onChange={() => {
-                    setSelectedCategories(prev =>
-                      prev.includes(cat)
-                        ? prev.filter(c => c !== cat)
-                        : [...prev, cat]
-                    );
+                    setSelectedCategories(prev => {
+                      const alreadySelected = prev.includes(cat);
+                      if (alreadySelected) {
+                        //remove the category if it is already selected
+                        return prev.filter(c => c !== cat);
+                      } else {
+                        //add the category if it is not already selected
+                        return [...prev, cat];
+                      }
+                    });
                   }}
                   className="accent-blue-500"
                 />
@@ -168,15 +176,26 @@ export default function Explore() {
           </div>
         </div>
       </aside>
-      <main className="flex-1 p-6 md:p-12">
+      <main className="flex-1 p-6 md:p-8 md:px-4">
         <h1 className="text-3xl font-bold mb-6">Discover new skills and talented users</h1>
-        <div className="mb-8">
+        <div className="mb-8 flex items-center gap-2">
           <Input
             placeholder="search for a skill, location or user"
             className="w-full max-w-xl text-white"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
+          <div className="md:hidden flex justify-end">
+        <Button
+          onClick={() => setShowFilters(true)}
+          className="flex items-center gap-2  text-white font-semibold rounded-lg px-5 py-2 shadow-lg   transition-all duration-200"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707l-6.414 6.414A1 1 0 0013 13.414V19a1 1 0 01-1.447.894l-4-2A1 1 0 017 17v-3.586a1 1 0 00-.293-.707L3.293 6.707A1 1 0 013 6V4z"/>
+          </svg>
+          Filters
+        </Button>
+      </div>
         </div>
         <h2 className="text-2xl font-semibold mb-4">Top members</h2>
 
@@ -212,9 +231,10 @@ export default function Explore() {
                   req.status !== 'declined'
               );
               return (
-                <div key={user.id} className="flex flex-col sm:flex-row items-start gap-4 p-4 bg-[#181f25] rounded-xl shadow border-none h-full w-full max-w-xs sm:max-w-none mx-auto" style={{ minWidth: 0 }}>
-                  <img src={user.avatar || defaultAvatar}  alt={user.name} className="w-20 min-w-[5rem] h-20 rounded-full border-2 border-button object-cover mx-auto sm:mx-0" />
-                  <div className="flex-1 w-full min-w-0">
+                <div key={user.id} className="flex flex-col sm:flex-row items-start gap-2 p-4 bg-[#181f25] rounded-xl shadow-xl border-none h-full w-full max-w-xs sm:max-w-none mx-auto">
+                  <img src={user.avatar || defaultAvatar}  alt={user.name} className="w-15 h-15 rounded-full border-2 border-button object-cover mx-auto sm:mx-0" />
+                  <div className="flex-1 w-full min-w-0 h-full flex flex-col justify-between">
+                    <div>
                     <Link to={`/profile/${user.id}`} className="font-bold text-lg text-white hover:text-blue-400 transition-colors">
                       {user.name}
                     </Link>
@@ -227,12 +247,26 @@ export default function Explore() {
                         : <span className="italic text-gray-500">No bio</span>
                       }
                     </div>
-                    <div className="text-xs text-white mb-2">{user.rating}.0 ({user.reviews} reviews)</div>
+                    <div className="flex items-left flex-col mb-3">
+                      <div className="flex">
+                        <span className="text-yellow-400 font-bold">
+                          {user.rating ? user.rating.toFixed(1) : ""}
+                        </span>
+                        {[1,2,3,4,5].map(star => (
+                          <span key={star} className={star <= Math.round(user.rating) ? "text-yellow-400" : "text-gray-500"}>
+                            ★
+                          </span>
+                        ))}
+                      </div>
+                      <span className="text-xs text-gray-400">
+                        ({user.reviews || 0} reviews)
+                      </span>
+                    </div>
                     <div className="mb-2">
                       <div className="text-xs text-white mb-1">🔁 I offer :</div>
                       <div className="flex flex-wrap gap-1">
                         {user.skills?.map((skill, index) => (
-                          <span key={index} className="px-2 py-1 bg-blue-500/20 text-white rounded-full text-xs">
+                          <span key={index} className="px-2 py-1 bg-blue-500/20 text-white rounded-lg text-xs">
                             {skill}
                           </span>
                         ))}
@@ -242,16 +276,17 @@ export default function Explore() {
                       <div className="text-xs text-white mb-1">🎯 I want to learn :</div>
                       <div className="flex flex-wrap gap-1">
                         {user.learning?.slice(0, 3).map((skill, index) => (
-                          <span key={index} className="px-2 py-1 bg-purple-500/20 text-white rounded-full text-xs">
+                          <span key={index} className="px-2 py-1 bg-purple-500/20 text-white rounded-lg text-xs  md:w-auto">
                             {skill}
                           </span>
                         ))}
                       </div>
                     </div>
+                    </div>
                     <div className="flex justify-end mt-2">
                       <Dialog open={openDialog && selectedUser?.id === user.id} onOpenChange={open => { setOpenDialog(open); if (!open) setSelectedSkill(""); }}>
                         <DialogTrigger asChild>
-                          <Button onClick={() => { setSelectedUser(user); setSelectedSkill(""); }}>Send Swap Request !</Button>
+                          <Button  onClick={() => { setSelectedUser(user); setSelectedSkill(""); }}>Send Swap Request !</Button>
                         </DialogTrigger>
                         <DialogContent className="bg-[#111B23] text-white">
                           <DialogHeader>
@@ -296,6 +331,40 @@ export default function Explore() {
         </div>
       </main>
       <Toaster position="bottom-right"  />
+      {/* Mobile/Tablet Filters Dialog */}
+      <Dialog open={showFilters} onOpenChange={setShowFilters}>
+        <DialogContent className="bg-[#181f25] text-white max-w-xs w-full">
+          <DialogHeader>
+            <DialogTitle>Filters</DialogTitle>
+          </DialogHeader>
+          <div>
+            <span className="block text-sm mb-2">Availability</span>
+            <DatePickerWithRange onSelect={setDateRange} />
+          </div>
+          <div className="mb-6">
+            <span className="block text-sm mb-2">Skills Categories</span>
+            <div className="flex flex-col gap-2">
+              {categories.map(cat => (
+                <label key={cat} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedCategories.includes(cat)}
+                    onChange={() => {
+                      setSelectedCategories(prev =>
+                        prev.includes(cat)
+                          ? prev.filter(c => c !== cat)
+                          : [...prev, cat]
+                      );
+                    }}
+                    className="accent-blue-500"
+                  />
+                  <span>{cat}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

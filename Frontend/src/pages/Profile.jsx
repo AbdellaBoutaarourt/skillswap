@@ -187,7 +187,7 @@ function Profile() {
   }
 
   return (
-    <div className="min-h-screen bg-[#101820] text-white flex flex-col items-center py-12 px-2">
+    <div className="min-h-screen bg-[#111B23] text-white flex flex-col items-center py-12 px-2">
       <div className="w-full max-w-4xl flex flex-col md:flex-row items-center md:items-start md:space-x-8 mb-8">
         <img
           src={user.avatar ||  defaultAvatar}
