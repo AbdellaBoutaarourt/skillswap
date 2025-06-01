@@ -1,8 +1,10 @@
 import logo from "../assets/logo1.png";
 import AOS from 'aos';
 import 'aos/dist/aos.css';
-import { useEffect } from 'react';
-
+import { useEffect, useState } from 'react';
+import axios from 'axios';
+import defaultAvatar from "../assets/user.png";
+import { Link } from 'react-router-dom';
 const skills = [
   { title: "Development", desc: "Web, mobile, AI, more", img: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&w=400&q=80" },
   { title: "Design", desc: "UI/UX, graphic, branding", img: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80" },
@@ -12,17 +14,18 @@ const skills = [
   { title: "Sport", desc: "Football, yoga, dance", img: "https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=400&q=80" },
 ];
 
-const users = [
-  { name: "Alice", skills: ["Design", "Marketing"], avatar: "https://randomuser.me/api/portraits/women/44.jpg", rating: 4.9 },
-  { name: "Bob", skills: ["Programming", "AI"], avatar: "https://randomuser.me/api/portraits/men/32.jpg", rating: 4.7 },
-  { name: "Sophie", skills: ["Cooking", "Languages"], avatar: "https://randomuser.me/api/portraits/women/65.jpg",  rating: 4.5 },
-];
-
-const sortedUsers = [...users].sort((a, b) => b.rating - a.rating);
-
 const Home = () => {
+  const [topUsers, setTopUsers] = useState([]);
+
   useEffect(() => {
     AOS.init({ once: true, duration: 700 });
+    axios.get('http://localhost:5000/users/explore')
+      .then(res => {
+        //sort the users by rating in descending order and take the top 3
+        const sorted = [...res.data].sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 3);
+        setTopUsers(sorted);
+      })
+      .catch(() => setTopUsers([]));
   }, []);
 
   return (
@@ -67,7 +70,7 @@ const Home = () => {
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
           {skills.map((skill) => (
-            <div key={skill.title} className="bg-[#181f25] rounded-xl overflow-hidden shadow flex flex-col items-center p-2 transition-transform duration-200 hover:scale-105 hover:shadow-2xl cursor-pointer" data-aos="zoom-in">
+            <div key={skill.title} className="bg-[#181f25] rounded-xl overflow-hidden shadow flex flex-col items-center p-2 transition-transform duration-200 hover:scale-105 hover:shadow-2xl cursor-pointer ">
               <img src={skill.img} alt={skill.title} className="w-full h-20 object-cover rounded-md mb-2 transition-transform duration-200 group-hover:scale-110" />
               <div className="text-center">
                 <div className="font-bold text-base md:text-lg">{skill.title}</div>
@@ -96,22 +99,25 @@ const Home = () => {
           <h3 className="text-2xl md:text-3xl font-bold">🌟 Featured Users / Top Contributors</h3>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {sortedUsers.map((u) => (
-            <div key={u.name} className="bg-[#181f25] rounded-xl overflow-hidden shadow flex flex-col items-center p-4 transition-transform duration-200 hover:scale-105 hover:shadow-2xl cursor-pointer" data-aos="zoom-in">
-              <img src={u.avatar} alt={u.name} className="w-16 h-16 rounded-full mb-2 border-2 border-button transition-transform duration-200 hover:scale-110" />
-              <div className="font-bold text-lg">{u.name}</div>
+          {topUsers.map((user) => (
+            <div key={user.id} className="bg-[#181f25] rounded-xl shadow flex flex-col justify-between items-center p-4 transition-transform duration-200 hover:scale-105 hover:shadow-2xl cursor-pointer">
+              <Link to={`/profile/${user.id}`} className="flex flex-col items-center w-full">
+                <img src={user.avatar || defaultAvatar} alt={user.name} className="w-16 h-16 rounded-full mb-2 border-2 border-button object-cover transition-transform duration-200 hover:scale-110" />
+                <div className="font-bold text-lg">{user.name}</div>
+              </Link>
               <div className="flex flex-wrap justify-center gap-1 mt-1 mb-2">
-                {u.skills.map((s) => (
-                  <span key={s} className="bg-button text-white text-xs px-2 py-0.5 rounded-xl transition-transform duration-150 hover:scale-105 cursor-pointer">{s}</span>
+                {user.skills?.map((s) => (
+                  <span key={s} className="bg-button text-white text-xs px-2 py-0.5 rounded-xl">{s}</span>
                 ))}
               </div>
               <div className="flex items-center mb-1">
-                {[1,2,3,4,5].map((i) => (
-                  <svg key={i} className={`w-4 h-4 ${i <= Math.round(u.rating) ? 'text-yellow-400' : 'text-gray-500'} transition-colors duration-150 cursor-pointer hover:text-yellow-300`} fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.967a1 1 0 00.95.69h4.175c.969 0 1.371 1.24.588 1.81l-3.38 2.455a1 1 0 00-.364 1.118l1.287 3.966c.3.922-.755 1.688-1.54 1.118l-3.38-2.454a1 1 0 00-1.175 0l-3.38 2.454c-.784.57-1.838-.196-1.54-1.118l1.287-3.966a1 1 0 00-.364-1.118L2.05 9.394c-.783-.57-.38-1.81.588-1.81h4.175a1 1 0 00.95-.69l1.286-3.967z"/></svg>
-                ))}
-                <span className="ml-2 text-sm text-gray-200 font-semibold">{u.rating.toFixed(1)}/5</span>
+              {[1,2,3,4,5].map(star => (
+                          <span key={star} className={star <= Math.round(user.rating) ? "text-yellow-400" : "text-gray-500"}>
+                            ★
+                          </span>
+                        ))}
+                <span className="ml-2 text-sm text-gray-200 font-semibold">{user.rating?.toFixed(1) || "0.0"}/5</span>
               </div>
-              <span className="text-xs text-yellow-400 font-semibold">{u.badge}</span>
             </div>
           ))}
         </div>
