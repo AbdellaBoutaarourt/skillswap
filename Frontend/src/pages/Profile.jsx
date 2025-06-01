@@ -108,7 +108,7 @@ MultiSelect.propTypes = {
 
 function Profile() {
   const [tab, setTab] = useState("skills");
-  const user = JSON.parse(localStorage.getItem('user')) || {};
+  const user = JSON.parse(localStorage.getItem('user'));
   const [form, setForm] = useState({
     username: user.username || "",
     location: user.location || "",
@@ -196,7 +196,12 @@ function Profile() {
         />
         <div className="flex-1 flex flex-col md:flex-row md:items-center md:justify-between w-full">
           <div className="text-center md:text-left mb-4 md:mb-0">
-            <div className="font-bold text-2xl md:text-2xl text-white">{user.username || user.name || "No Name"}</div>
+            <div className="font-bold text-2xl md:text-2xl text-white">
+             {user.firstName} {user.lastName}
+            </div>
+            <div className="text-blue-400 text-base mt-1">
+              @{user.username}
+            </div>
             <div className="text-gray-300 text-base mt-1">{user.location || ""}</div>
           </div>
           <div className="flex gap-4 md:gap-6 justify-center md:justify-end">

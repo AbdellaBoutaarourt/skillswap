@@ -162,10 +162,10 @@ export default function User() {
         <div className="flex-1 flex flex-col md:flex-row md:items-center md:justify-between w-full">
           <div className="text-center md:text-left mb-4 md:mb-0">
             <div className="font-bold text-2xl md:text-2xl text-white">
-              {(user.first_name || user.last_name)
-                ? `${user.first_name || ''} ${user.last_name || ''}`.trim()
-                : user.username
-              }
+              {user.first_name} {user.last_name}
+            </div>
+            <div className="text-blue-400 text-base mt-1">
+              @{user.username}
             </div>
             <div className="text-gray-300 text-base mt-1">{user.location || ""}</div>
           </div>

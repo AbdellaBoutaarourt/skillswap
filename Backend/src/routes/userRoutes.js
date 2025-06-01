@@ -167,6 +167,8 @@ router.post('/login', [
         id: authData.user.id,
         email: authData.user.email,
         username: profileData.username,
+        firstName: profileData.first_name,
+        lastName: profileData.last_name,
         bio: profileData.bio,
         skills: profileData.skills,
         learning: learningGoals.map(goal => goal.skills.name),

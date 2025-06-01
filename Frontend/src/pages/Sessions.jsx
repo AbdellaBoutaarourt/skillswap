@@ -294,7 +294,7 @@ export default function Sessions() {
             <h2 className="text-xl font-semibold mb-4 text-gray-400">Past Sessions</h2>
             {hasPendingRating && (
               <div className="mb-4 p-4 bg-[#232e39] border-l-4 border-blue-500 text-blue-300 rounded">
-                You have past sessions that you haven't rated yet. Please consider leaving feedback for your mentor!
+                You have past sessions that you haven&apos;t rated yet. Please consider leaving feedback for your mentor!
               </div>
             )}
             <div className="space-y-4">
