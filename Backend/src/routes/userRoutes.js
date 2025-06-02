@@ -406,6 +406,8 @@ router.get('/explore', async (req, res) => {
       avatar: user.avatar_url,
       rating: user.rating || 0,
       reviews: user.rating_count || 0,
+      first_name: user.first_name ,
+      last_name: user.last_name,
       bio: user.bio || '',
       location: user.location || '',
       skills: Array.isArray(user.skills) ? user.skills : [],

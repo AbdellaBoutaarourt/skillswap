@@ -86,11 +86,16 @@ export default function Explore() {
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filteredUsers = filteredUsers.filter(user =>
-        (user.name && user.name.toLowerCase().includes(query)) ||
-        (user.location && user.location.toLowerCase().includes(query)) ||
-        (Array.isArray(user.skills) && user.skills.some(skill => skill && skill.toLowerCase().includes(query)))
-      );
+
+      filteredUsers = filteredUsers.filter(user => {
+        const fullName = `${user.first_name || ""} ${user.last_name || ""}`.toLowerCase();
+        return (
+          (user.name && user.name.toLowerCase().includes(query)) ||
+          (user.location && user.location.toLowerCase().includes(query)) ||
+          fullName.includes(query) ||
+          (Array.isArray(user.skills) && user.skills.some(skill => skill?.toLowerCase().includes(query)))
+        );
+      });
     }
 
     setUsers(filteredUsers);
