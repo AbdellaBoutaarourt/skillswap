@@ -7,6 +7,7 @@ import { Button } from "../components/ui/button";
 import { toast, Toaster } from "sonner";
 import SessionRequestMessage from "../components/SessionRequestMessage";
 import SessionDialog from "../components/SessionDialog";
+import { Sheet, SheetContent, SheetTrigger } from "../components/ui/sheet";
 
 export default function Messages() {
   const [conversations, setConversations] = useState([]);
@@ -15,6 +16,7 @@ export default function Messages() {
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const messagesContainerRef = useRef(null);
   const navigate = useNavigate();
   const { userId } = useParams();
@@ -232,6 +234,67 @@ export default function Messages() {
     fetchSessions();
   };
 
+  const SidebarContent = () => (
+    <div className="h-full flex flex-col">
+      <div className="p-4">
+        <Input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search conversations"
+          className="mb-4 px-4 py-2 rounded-lg bg-[#181f25] text-white placeholder-gray-400 outline-none"
+        />
+        <h2 className="text-xl font-bold mb-4">Conversations</h2>
+        {filteredConversations.length === 0 ? (
+          <p className="text-gray-400">No conversations yet</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {filteredConversations.map((conv) => (
+              <div
+                key={conv.otherUser.id}
+                className={`p-3 rounded-lg cursor-pointer transition ${
+                  selectedUser?.id === conv.otherUser.id
+                    ? "bg-blue-600"
+                    : "hover:bg-gray-800"
+                }`}
+                onClick={() => {
+                  setSelectedUser(conv.otherUser);
+                  setIsMobileSidebarOpen(false);
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <img
+                    src={conv.otherUser.avatar_url || defaultAvatar}
+                    alt={conv.otherUser.username}
+                    className="w-8 h-8 rounded-full border-2 border-blue-500 object-cover"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold truncate">
+                      {conv.otherUser.username}
+                    </div>
+                    <div className="text-sm text-gray-400 truncate">
+                      {conv.is_request ? (
+                        <span className="text-blue-400">
+                          {conv.requested_skill} - Start a conversation
+                        </span>
+                      ) : (
+                        conv.last_message
+                      )}
+                    </div>
+                  </div>
+                  {conv.unread_count > 0 && (
+                    <span className="bg-blue-500 text-white text-xs rounded-full px-2 py-1">
+                      {conv.unread_count}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#111B23]">
@@ -243,79 +306,63 @@ export default function Messages() {
 
   return (
     <div className="flex h-screen bg-[#111B23] text-white">
-      <div className="w-[320px] border-r border-gray-800 flex flex-col">
-        <div className="p-4">
-          <Input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search"
-            className="mb-4 px-4 py-2 rounded-full bg-[#181f25] text-white placeholder-gray-400 outline-none"
-          />
-          <h2 className="text-xl font-bold mb-4">Conversations</h2>
-          {filteredConversations.length === 0 ? (
-            <p className="text-gray-400">No conversations yet</p>
-          ) : (
-            <div className="flex flex-col gap-2">
-              {filteredConversations.map((conv) => (
-                <div
-                  key={conv.otherUser.id}
-                  className={`p-3 rounded-lg cursor-pointer transition ${
-                    selectedUser?.id === conv.otherUser.id
-                      ? "bg-blue-600"
-                      : "hover:bg-gray-800"
-                  }`}
-                  onClick={() => {
-                    setSelectedUser(conv.otherUser);
-                  }}
-                >
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={conv.otherUser.avatar_url || defaultAvatar}
-                      alt={conv.otherUser.username}
-                      className="w-8 h-8 rounded-full border-2 border-blue-500 object-cover"
-                    />
-                    <div className="flex-1">
-                      <div className="font-semibold">
-                        {conv.otherUser.username }
-                      </div>
-                      <div className="text-sm text-gray-400">
-                        {conv.is_request ? (
-                          <span className="text-blue-400">
-                            {conv.requested_skill} - Start a conversation
-                          </span>
-                        ) : (
-                          conv.last_message
-                        )}
-                      </div>
-                    </div>
-                    {conv.unread_count > 0 && (
-                      <span className="bg-blue-500 text-white text-xs rounded-full px-2 py-1">
-                        {conv.unread_count}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+      {/* Desktop Sidebar */}
+      <div className="hidden md:block w-[320px] border-r border-gray-800">
+        <SidebarContent />
       </div>
 
-      <div className="flex-1 flex flex-col max-h-11/12">
-        <div className="flex justify-between items-center px-8 py-4 border-b border-[#232e39]">
-          <div className="text-xl font-semibold text-white">{selectedUser?.first_name || selectedUser?.username}</div>
+      {/* Mobile Sidebar */}
+      <Sheet open={isMobileSidebarOpen} onOpenChange={setIsMobileSidebarOpen}>
+        <SheetTrigger asChild>
+          <span />
+        </SheetTrigger>
+        <SheetContent side="left" className="w-[320px] p-0 bg-[#111B23] border-r border-gray-800 text-white pt-6">
+          <SidebarContent />
+        </SheetContent>
+      </Sheet>
+
+      <div className="flex-1 flex flex-col h-full">
+        <div className="sticky top-0 z-40 bg-[#111B23] border-b border-[#232e39] flex items-center justify-between px-4 md:px-8 py-4">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              className="md:hidden p-2 mr-2 -ml-2 bg-transparent hover:bg-[#232e39]"
+              onClick={() => setIsMobileSidebarOpen(true)}
+            >
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              </svg>
+            </Button>
+            <div className="text-xl font-semibold text-white truncate">
+              {selectedUser?.first_name || selectedUser?.username || "Messages"}
+            </div>
+          </div>
           {selectedUser && (
             <Button
-              className="bg-blue-500 text-white px-4 py-2 rounded-lg font-medium"
+              className="bg-blue-500 text-white px-4 py-2 rounded-lg font-medium ml-2"
               onClick={() => setSessionDialogOpen(true)}
             >
               Schedule a session
             </Button>
           )}
         </div>
+
         {selectedUser ? (
           <>
-            <div ref={messagesContainerRef} className="flex-1 p-8 flex flex-col gap-4 overflow-y-auto">
+            <div
+              ref={messagesContainerRef}
+              className="flex-1 p-4 md:p-8 flex flex-col gap-4 overflow-y-auto"
+            >
               {allItems.map((item, index) => (
                 item.type === 'session' ? (
                   <SessionRequestMessage
@@ -344,7 +391,7 @@ export default function Messages() {
                           className="w-8 h-8 rounded-full border-2 border-blue-500 object-cover mt-1"
                         />
                       )}
-                      <div className="flex flex-col max-w-[60%]">
+                      <div className="flex flex-col max-w-[80%] md:max-w-[60%]">
                         {item.sender_id !== user.id && (
                           <span className="text-xs text-white font-semibold mb-1 ml-1">
                             {selectedUser.username}
@@ -364,24 +411,26 @@ export default function Messages() {
             </div>
             <form
               onSubmit={handleSendMessage}
-              className="flex items-center gap-2 px-8 py-2 border-t border-[#232e39] bg-[#151d23] sticky bottom-0"
+              className="flex items-center gap-2 px-4 md:px-8 py-2 border-t border-[#232e39] bg-[#151d23] sticky bottom-0"
             >
               <Input
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 placeholder="Type your message here"
-                className="flex-1 px-4 py-2 rounded-full bg-[#181f25] text-white placeholder-gray-400 outline-none h-10"
+                className="flex-1 px-4 py-2 rounded-lg bg-[#181f25] text-white placeholder-gray-400 outline-none h-10"
               />
-              <Button type="submit" className="bg-blue-500 text-white px-6  font-medium">send</Button>
+              <Button type="submit" className="bg-blue-500 text-white px-6 font-medium">
+                Send
+              </Button>
             </form>
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center text-gray-400 text-lg">
-            Select a conversation.
+            Select a conversation
           </div>
         )}
-
       </div>
+
       <SessionDialog
         open={sessionDialogOpen}
         onOpenChange={setSessionDialogOpen}
