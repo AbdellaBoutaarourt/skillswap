@@ -6,6 +6,8 @@ import socket from "../socket";
 import axios from "axios";
 import dayjs from "dayjs";
 import { Badge } from "../components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "../components/ui/dialog";
+import { toast } from "sonner";
 
 export default function JoinSession() {
   const { sessionId } = useParams();
@@ -33,6 +35,8 @@ export default function JoinSession() {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [showRatingDialog, setShowRatingDialog] = useState(false);
 
   const toggleMute = () => {
       if (peerRef.current) {
@@ -158,9 +162,37 @@ export default function JoinSession() {
     answerReceived.current = false;
     peerDisconnected.current = false;
 
-    // Redirection
-    localStorage.setItem('rateSessionId', sessionId);
-    navigate("/sessions");
+    // Check if we need to show rating dialog
+    if (!isMentor && !sessionInfo.rated) {
+      setShowRatingDialog(true);
+    } else {
+      // Redirection
+      localStorage.setItem('rateSessionId', sessionId);
+      navigate("/sessions");
+    }
+  };
+
+  const handleRatingSubmit = async () => {
+    try {
+      await axios.post(`http://localhost:5000/users/${sessionInfo.scheduled_by}/rate`, { rating });
+      await axios.patch(`http://localhost:5000/sessions/${sessionId}/rate`, { rating });
+      setShowRatingDialog(false);
+      // Redirection
+      localStorage.setItem('rateSessionId', sessionId);
+      navigate("/sessions");
+      toast.success(`Thank you for rating your mentor ${rating} stars!`, {
+        duration: 4000,
+        position: "bottom-center",
+        style: {
+          background: "#181f25",
+          color: "white",
+          border: "1px solid #232e39"
+        }
+      });
+    } catch (error) {
+      console.error('Error submitting rating:', error);
+      toast.error('Failed to submit rating');
+    }
   };
 
   useEffect(() => {
@@ -514,7 +546,7 @@ export default function JoinSession() {
           {/* button menu */}
           <Button
             onClick={() => setShowMenu(!showMenu)}
-            className="w-12 h-12 p-0 rounded-full text-2xl flex items-center justify-center shadow-lg bg-blue-600 hover:bg-blue-700 text-white transition active:scale-95"
+            className="w-12 h-12 p-0 rounded-full text-2xl flex items-center justify-center shadow-lg bg-button hover:bg-blue-700 text-white transition active:scale-95"
             title="Session Info"
           >
             <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -569,7 +601,7 @@ export default function JoinSession() {
         </Button>
         <Button
           onClick={toggleMute}
-          className={`w-10 h-10 p-0 rounded-full text-2xl flex items-center justify-center shadow-lg transition active:scale-95 ${isMuted ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'}`}
+          className={`w-10 h-10 p-0 rounded-full text-2xl flex items-center justify-center shadow-lg transition active:scale-95 ${isMuted ? 'bg-red-500 hover:bg-red-600' : 'bg-button hover:bg-blue-600'}`}
           title={isMuted ? "Unmute" : "Mute"}
         >
           {isMuted ? (
@@ -585,7 +617,7 @@ export default function JoinSession() {
         </Button>
         <Button
           onClick={toggleCamera}
-          className={`w-10 h-10 p-0 rounded-full text-2xl flex items-center justify-center shadow-lg transition active:scale-95 ${isCameraOff ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'}`}
+          className={`w-10 h-10 p-0 rounded-full text-2xl flex items-center justify-center shadow-lg transition active:scale-95 ${isCameraOff ? 'bg-red-500 hover:bg-red-600' : 'bg-button hover:bg-blue-600'}`}
           title={isCameraOff ? "Enable camera" : "Disable camera"}
         >
           {isCameraOff ? (
@@ -602,7 +634,7 @@ export default function JoinSession() {
         </Button>
         <Button
           onClick={isScreenSharing ? stopScreenShare : startScreenShare}
-          className={`w-10 h-10 p-0 rounded-full text-2xl flex items-center justify-center shadow-lg transition active:scale-95 ${isScreenSharing ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-blue-500 hover:bg-blue-600'}`}
+          className={`w-10 h-10 p-0 rounded-full text-2xl flex items-center justify-center shadow-lg transition active:scale-95 ${isScreenSharing ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-button hover:bg-blue-600'}`}
           title={isScreenSharing ? "Stop screen sharing" : "Share screen"}
         >
           {isScreenSharing ? (
@@ -625,7 +657,7 @@ export default function JoinSession() {
               document.exitFullscreen();
             }
           }}
-          className="w-10 h-10 p-0 rounded-full text-2xl flex items-center justify-center shadow-lg bg-blue-500 hover:bg-blue-600 text-white transition active:scale-95"
+          className="w-10 h-10 p-0 rounded-full text-2xl flex items-center justify-center shadow-lg bg-button hover:bg-blue-600 text-white transition active:scale-95"
           title={isFullScreen ? "Exit Fullscreen" : "Enter Fullscreen"}
         >
           {isFullScreen ? (
@@ -641,7 +673,7 @@ export default function JoinSession() {
         <div className="relative">
           <Button
             onClick={() => setShowChat(true)}
-            className="w-10 h-10 p-0 rounded-full text-2xl flex items-center justify-center shadow-lg bg-blue-600 hover:bg-blue-700 text-white transition active:scale-95"
+            className="w-10 h-10 p-0 rounded-full text-2xl flex items-center justify-center shadow-lg bg-button hover:bg-blue-700 text-white transition active:scale-95"
             title="Open chat"
           >
             <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -719,7 +751,7 @@ export default function JoinSession() {
             />
             <button
               type="submit"
-              className="bg-blue-600 text-white px-4 py-2 rounded font-semibold text-sm"
+              className="bg-button text-white px-4 py-2 rounded font-semibold text-sm"
             >
               Send
             </button>
@@ -727,6 +759,40 @@ export default function JoinSession() {
         </div>
       )}
 
+      {/* Rating Dialog */}
+      <Dialog open={showRatingDialog} onOpenChange={setShowRatingDialog}>
+        <DialogContent className="bg-[#181f25] text-white border-none shadow-2xl">
+          <DialogHeader>
+            <DialogTitle>Rate your mentor</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4">
+            <div className="flex gap-2 justify-center my-4">
+              {[1,2,3,4,5].map(star => (
+                <Button
+                  key={star}
+                  type="button"
+                  variant="ghost"
+                  className="text-3xl cursor-pointer"
+                  onClick={() => setRating(star)}
+                >
+                  <span className={star <= rating ? 'text-yellow-400' : 'text-gray-300'}>★</span>
+                </Button>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button
+                className="w-full bg-button hover:bg-blue-700 text-white"
+                onClick={handleRatingSubmit}
+                disabled={rating === 0}
+              >
+                Submit
+              </Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );

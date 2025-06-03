@@ -107,17 +107,17 @@ export default function Messages() {
     if (!selectedUser || !user?.id) return;
 
     // Fetch initial messages
-    const fetchMessages = async () => {
-      try {
-        const response = await axios.get(
-          `http://localhost:5000/messages/chat/${user.id}/${selectedUser.id}`
-        );
-        setMessages(response.data);
-      } catch (error) {
-        console.error("Error fetching messages:", error);
-      }
-    };
-    fetchMessages();
+      const fetchMessages = async () => {
+        try {
+          const response = await axios.get(
+            `http://localhost:5000/messages/chat/${user.id}/${selectedUser.id}`
+          );
+          setMessages(response.data);
+        } catch (error) {
+          console.error("Error fetching messages:", error);
+        }
+      };
+      fetchMessages();
 
     // Fetch initial sessions
     const fetchSessions = async () => {
@@ -302,63 +302,63 @@ export default function Messages() {
 
   const SidebarContent = () => (
     <div className="h-full flex flex-col">
-      <div className="p-4">
-        <Input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
+        <div className="p-4">
+          <Input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
           placeholder="Search conversations"
           className="mb-4 px-4 py-2 rounded-lg bg-[#181f25] text-white placeholder-gray-400 outline-none"
-        />
-        <h2 className="text-xl font-bold mb-4">Conversations</h2>
-        {filteredConversations.length === 0 ? (
-          <p className="text-gray-400">No conversations yet</p>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {filteredConversations.map((conv) => (
-              <div
-                key={conv.otherUser.id}
-                className={`p-3 rounded-lg cursor-pointer transition ${
-                  selectedUser?.id === conv.otherUser.id
-                    ? "bg-blue-600"
-                    : "hover:bg-gray-800"
-                }`}
+          />
+          <h2 className="text-xl font-bold mb-4">Conversations</h2>
+          {filteredConversations.length === 0 ? (
+            <p className="text-gray-400">No conversations yet</p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {filteredConversations.map((conv) => (
+                <div
+                  key={conv.otherUser.id}
+                  className={`p-3 rounded-lg cursor-pointer transition ${
+                    selectedUser?.id === conv.otherUser.id
+                      ? "bg-blue-600"
+                      : "hover:bg-gray-800"
+                  }`}
                 onClick={() => {
                   setSelectedUser(conv.otherUser);
                   setIsMobileSidebarOpen(false);
                 }}
-              >
-                <div className="flex items-center gap-3">
-                  <img
-                    src={conv.otherUser.avatar_url || defaultAvatar}
-                    alt={conv.otherUser.username}
-                    className="w-8 h-8 rounded-full border-2 border-blue-500 object-cover"
-                  />
+                >
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={conv.otherUser.avatar_url || defaultAvatar}
+                      alt={conv.otherUser.username}
+                      className="w-8 h-8 rounded-full border-2 border-blue-500 object-cover"
+                    />
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold truncate">
                       {conv.otherUser.username}
-                    </div>
+                      </div>
                     <div className="text-sm text-gray-400 truncate">
-                      {conv.is_request ? (
-                        <span className="text-blue-400">
-                          {conv.requested_skill} - Start a conversation
-                        </span>
-                      ) : (
-                        conv.last_message
-                      )}
+                        {conv.is_request ? (
+                          <span className="text-blue-400">
+                            {conv.requested_skill} - Start a conversation
+                          </span>
+                        ) : (
+                          conv.last_message
+                        )}
+                      </div>
                     </div>
+                    {conv.unread_count > 0 && (
+                      <span className="bg-blue-500 text-white text-xs rounded-full px-2 py-1">
+                        {conv.unread_count}
+                      </span>
+                    )}
                   </div>
-                  {conv.unread_count > 0 && (
-                    <span className="bg-blue-500 text-white text-xs rounded-full px-2 py-1">
-                      {conv.unread_count}
-                    </span>
-                  )}
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
   );
 
   if (loading) {

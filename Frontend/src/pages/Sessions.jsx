@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { Button } from "../components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { Toaster } from "sonner";
@@ -15,6 +15,7 @@ export default function Sessions() {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [skillRequests, setSkillRequests] = useState([]);
+  const [usersData, setUsersData] = useState({});
   const user = JSON.parse(localStorage.getItem("user"));
   const navigate = useNavigate();
   const [rating, setRating] = useState(0);
@@ -38,6 +39,22 @@ export default function Sessions() {
         const { data: sessionsData } = await axios.get(`http://localhost:5000/sessions/user/${user.id}`);
         // Fetch skill requests
         const { data: skillRequestsData } = await axios.get(`http://localhost:5000/skills/skill-requests/user/${user.id}`);
+
+        // Get unique user IDs from sessions
+        const userIds = new Set();
+        sessionsData.forEach(session => {
+          userIds.add(session.scheduled_by);
+          userIds.add(session.scheduled_with);
+        });
+
+        // Fetch user data for all participants
+        const usersDataObj = {};
+        for (const userId of userIds) {
+          const { data: userData } = await axios.get(`http://localhost:5000/users/${userId}`);
+          usersDataObj[userId] = userData;
+          console.log(usersDataObj);
+        }
+        setUsersData(usersDataObj);
 
         // Enrichis chaque session avec isMentor
         const enrichedSessions = sessionsData.map(session => {
@@ -181,17 +198,29 @@ export default function Sessions() {
                         <span className="mx-2">•</span>
                         <span>{session.start_time?.slice(0,5)} - {session.end_time?.slice(0,5)}</span>
                       </div>
+                      <div className="flex items-center gap-2 text-gray-300">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        <span>With: </span>
+                        <Link
+                          to={`/profile/${session.scheduled_by}`}
+                          className="text-blue-400 hover:text-blue-300 transition-colors"
+                        >
+                          {usersData[session.scheduled_by]?.first_name} {usersData[session.scheduled_by]?.last_name}
+                        </Link>
+                      </div>
                     </div>
                     <div className="flex gap-2">
                       <Button
-                        className="bg-blue-500 text-white px-10 py-1 rounded-lg font-medium"
+                        className="bg-button text-white px-10 py-1 rounded-lg font-medium"
                         onClick={() => handleAcceptSession(session.id)}
                       >
                         Accept
                       </Button>
                       <Button
                         variant="outline"
-                        className="border-white cursor-pointer text-black rounded-lg font-medium px-10 transition hover:bg-white/10"
+                        className="border-white text-white font-bold py-2 px-8 rounded-lg cursor-pointer transition bg-[#181f25] hover:bg-[#232e39] hover:text-white shadow"
                         onClick={() => handleDeclineSession(session.id)}
                       >
                         Decline
@@ -253,12 +282,25 @@ export default function Sessions() {
                           </>
                         )}
                       </div>
+
+                      <div className="flex items-center gap-2 text-gray-300">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        <span>With: </span>
+                        <Link
+                          to={`/profile/${session.scheduled_with}`}
+                          className="text-blue-400 hover:text-blue-300 transition-colors"
+                        >
+                          {usersData[session.scheduled_with].first_name} {usersData[session.scheduled_with].last_name}
+                        </Link>
+                      </div>
                     </div>
 
                     {session.mode === 'online' ? (
                       canJoinSession() ? (
                         <Button
-                          className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                          className="bg-button hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
                           onClick={() => {
                             navigate(`/session/${session.id}`);
                             window.location.reload();
@@ -333,6 +375,18 @@ export default function Sessions() {
                           </>
                         )}
                       </div>
+                      <div className="flex items-center gap-2 text-gray-400">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        <span>With: </span>
+                        <Link
+                          to={`/profile/${session.scheduled_with}`}
+                          className="text-blue-400 hover:text-blue-300 transition-colors"
+                        >
+                          {usersData[session.scheduled_with]?.first_name} {usersData[session.scheduled_with]?.last_name}
+                        </Link>
+                      </div>
                     </div>
                     {session.rated && session.given_rating ? (
                       <div className="flex flex-col items-end">
@@ -385,7 +439,7 @@ export default function Sessions() {
                             <DialogFooter>
                               <DialogClose asChild>
                                 <Button
-                                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                                  className="w-full bg-button hover:bg-blue-700 text-white"
                                   onClick={() => submitRating(session.id)}
                                   disabled={rating === 0}
                                 >
