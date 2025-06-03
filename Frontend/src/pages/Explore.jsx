@@ -17,7 +17,6 @@ export default function Explore() {
   const [allUsers, setAllUsers] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -40,9 +39,7 @@ export default function Explore() {
       setLoading(true);
       const { data } = await axios.get('http://localhost:5000/users/explore');
       setAllUsers(data);
-      setError(null);
     } catch (err) {
-      setError('Failed to fetch users. Please try again later.');
       console.error('Error fetching users:', err);
     } finally {
       setLoading(false);
@@ -209,17 +206,6 @@ export default function Explore() {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto"></div>
             <p className="mt-4 text-gray-400">Loading users...</p>
           </div>
-        ) : error ? (
-          <div className="text-center py-8 text-red-400">
-            <p>{error}</p>
-            <Button
-              onClick={fetchUsers}
-              className="mt-4"
-              variant="outline"
-            >
-              Try Again
-            </Button>
-          </div>
         ) : users.length === 0 ? (
           <div className="text-center py-8 text-gray-400">
             <p>No users found matching your criteria.</p>
@@ -293,11 +279,11 @@ export default function Explore() {
                         <DialogTrigger asChild>
                           <Button  onClick={() => { setSelectedUser(user); setSelectedSkill(""); }}>Send Swap Request !</Button>
                         </DialogTrigger>
-                        <DialogContent className="bg-[#111B23] text-white">
+                        <DialogContent className="bg-[#111B23] text-white border-white/20">
                           <DialogHeader>
                             <DialogTitle className="text-xl md:text-2xl font-bold">Send a Swap Request</DialogTitle>
-                            <div className="mb-4 font-semibold text-base md:text-lg">
-                              Choose the skill you want to learn from {user.name}:
+                            <div className=" text-gray-500 font-semibold text-base md:text-sm">
+                              Choose the skill you want to learn from {user.name}
                             </div>
                           </DialogHeader>
                           <Select value={selectedSkill} onValueChange={setSelectedSkill}>

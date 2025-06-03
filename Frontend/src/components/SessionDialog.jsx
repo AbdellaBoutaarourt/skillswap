@@ -90,7 +90,7 @@ export default function SessionDialog({ open, onOpenChange, selectedUser, onSess
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[425px] bg-[#1a2634] text-white">
+      <DialogContent className="max-w-[425px] bg-[#1a2634] text-white border-white/20">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">Schedule a Session</DialogTitle>
         </DialogHeader>

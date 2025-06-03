@@ -157,24 +157,24 @@ export default function User() {
         <img
           src={user.avatar_url || user.avatar || defaultAvatar}
           alt="avatar"
-          className="w-36 h-36 rounded-full border-2 border-white object-cover mb-4 md:mb-0"
+          className="w-36 h-36 rounded-full border-4 border-blue-500 object-cover mb-4 md:mb-0 shadow-lg"
         />
         <div className="flex-1 flex flex-col md:flex-row md:items-center md:justify-between w-full">
           <div className="text-center md:text-left mb-4 md:mb-0">
             <div className="font-bold text-2xl md:text-2xl text-white">
               {user.first_name} {user.last_name}
             </div>
-            <div className="text-blue-400 text-base mt-1">
+            <div className="text-blue-400 text-base mt-1 font-semibold">
               @{user.username}
             </div>
-            <div className="text-gray-300 text-base mt-1">{user.location || ""}</div>
+            <div className="text-gray-400 text-base mt-1">{user.location || ""}</div>
           </div>
           {requestStatus === 'pending' && (
-            <div className="bg-white text-black rounded-2xl shadow-lg px-8 py-4 flex flex-col items-center max-w-xl w-full md:w-[420px] ml-0">
+            <div className="bg-[#181f25] text-white rounded-lg shadow-lg px-8 py-6 flex flex-col items-center max-w-xl w-full md:w-[420px] ml-0 border border-white/20">
               <div className="mb-6 text-center text-base font-medium">
-                {(user.first_name || user.last_name ? user.first_name || '' : user.username)} wants to learn: <span className="font-bold text-blue-600">{requestedSkill}</span>
+                <span className="text-white font-bold">{ user.username}</span> wants to learn: <span className="font-bold text-blue-400">{requestedSkill}</span>
                 <br />
-                <span className="text-gray-600 text-sm">
+                <span className="text-gray-400 text-sm">
                   Click below to accept or decline the request.
                 </span>
               </div>
@@ -182,19 +182,19 @@ export default function User() {
                 <Button className="w-1/2 bg-button hover:bg-blue-700 text-white font-bold py-2 px-8 rounded-lg transition" onClick={handleAccept}>
                   Accept
                 </Button>
-                <Button variant="outline" className="w-1/2 border-black text-black font-bold py-2 px-8 rounded-lg cursor-pointer transition bg-white hover:bg-gray-100" onClick={handleDecline}>
+                <Button variant="outline" className="w-1/2 border-white text-white font-bold py-2 px-8 rounded-lg cursor-pointer transition bg-[#181f25] hover:bg-[#232e39] hover:text-white shadow" onClick={handleDecline}>
                   Decline
                 </Button>
               </div>
             </div>
           )}
           {showDeclinedMessage && (
-            <div className=" text-black rounded-2xl  px-8 py-4 flex flex-col items-center max-w-xl w-full md:w-[420px] ml-0 ">
+            <div className="bg-[#181f25] text-white rounded-2xl shadow-2xl px-8 py-6 flex flex-col items-center max-w-xl w-full md:w-[420px] ml-0 border border-[#232e39]">
               <div className="mb-6 text-center text-base font-medium text-white">
                 You declined the request. Would you like to propose a skill swap instead?
               </div>
               <div className="flex gap-4 w-full justify-center">
-                <Button className="w-1/2 bg-button hover:bg-blue-700 text-white font-bold py-2 px-8 rounded-lg transition" onClick={() => setShowSwapModal(true)}>
+                <Button className="w-1/2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-8 rounded-lg transition shadow" onClick={() => setShowSwapModal(true)}>
                   Swap Skills
                 </Button>
               </div>
@@ -214,9 +214,9 @@ export default function User() {
             </div>
           )}
           {!requestStatus && (
-            <div className="text-black rounded-2xl p-8 flex flex-col items-center max-w-xl w-full md:w-[420px] ml-0 md:ml-8">
+            <div className="bg-[#181f25] text-white rounded-lg shadow-2xl p-8 flex flex-col items-center max-w-xl w-full md:w-[420px] ml-0 md:ml-8 border border-[#232e39]">
               <Button
-                className="bg-button hover:bg-blue-700 text-white font-bold py-2 px-8 rounded-lg transition flex items-center gap-2"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-8 rounded-lg transition flex items-center gap-2 shadow"
                 onClick={() => setShowSwapModal(true)}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-5 h-5">
@@ -232,14 +232,14 @@ export default function User() {
         <div className="font-bold text-xl mb-2 text-white">About</div>
         <div className="text-white text-base leading-snug">{user.bio || "No bio provided."}</div>
       </div>
-      <div className="w-full max-w-4xl flex justify-between border-b border-gray-400 mb-8">
+      <div className="w-full max-w-4xl flex justify-between border-b border-[#232e39] mb-8">
         <button
           className={`flex-1 text-center py-2 font-bold text-xl transition border-b-0 cursor-pointer relative text-white`}
           onClick={() => setTab('skills')}
         >
           Skills
           {tab === 'skills' && (
-            <span className="absolute left-1/2 -bottom-[2px] -translate-x-1/2 w-24 h-[2.5px] bg-white rounded-full transition-all duration-300" />
+            <span className="absolute left-1/2 -bottom-[2px] -translate-x-1/2 w-24 h-[2.5px] bg-white rounded-lg transition-all duration-300" />
           )}
         </button>
         <button
@@ -248,7 +248,7 @@ export default function User() {
         >
           Availability
           {tab === 'availability' && (
-            <span className="absolute left-1/2 -bottom-[2px] -translate-x-1/2 w-24 h-[2.5px] bg-white rounded-full transition-all duration-300" />
+            <span className="absolute left-1/2 -bottom-[2px] -translate-x-1/2 w-24 h-[2.5px] bg-white rounded-lg transition-all duration-300" />
           )}
         </button>
         <button
@@ -268,7 +268,7 @@ export default function User() {
               <div className="font-bold text-xl mb-3 text-white">Skills</div>
               <div className="flex flex-wrap gap-4">
                 {(user.skills && user.skills.length > 0 ? user.skills : ["No skills"]).map(skill => (
-                  <span key={skill} className="border border-white rounded-lg px-5 py-2 text-base text-white bg-transparent font-normal">{skill}</span>
+                  <span key={skill} className="rounded-lg px-5 py-2 text-base text-white bg-blue-500/20 font-normal">{skill}</span>
                 ))}
               </div>
             </div>
@@ -276,7 +276,7 @@ export default function User() {
               <div className="font-bold text-xl mb-3 text-white">Skills desired</div>
               <div className="flex flex-wrap gap-4">
                 {(user.learning && user.learning.length > 0 ? user.learning : ["No learning goals"]).map(skill => (
-                  <span key={skill} className="border border-white rounded-lg px-5 py-2 text-base text-white bg-transparent font-normal">{skill}</span>
+                  <span key={skill} className="rounded-lg px-5 py-2 text-base text-white bg-purple-500/20 font-normal">{skill}</span>
                 ))}
               </div>
             </div>
@@ -301,7 +301,7 @@ export default function User() {
                 </div>
               </div>
             )}
-            <div className="bg-[#181f25] rounded-xl p-4 w-full max-w-2xl mx-auto flex justify-center">
+            <div className="bg-[#181f25] rounded-lg p-4 w-full max-w-2xl mx-auto flex justify-center">
               <Calendar
                 mode="range"
                 selected={range}

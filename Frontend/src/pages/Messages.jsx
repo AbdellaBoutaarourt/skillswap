@@ -8,6 +8,12 @@ import { toast, Toaster } from "sonner";
 import SessionRequestMessage from "../components/SessionRequestMessage";
 import SessionDialog from "../components/SessionDialog";
 import { Sheet, SheetContent, SheetTrigger } from "../components/ui/sheet";
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY;
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
 
 export default function Messages() {
   const [conversations, setConversations] = useState([]);
@@ -98,8 +104,9 @@ export default function Messages() {
   };
 
   useEffect(() => {
-    if (!selectedUser) return;
+    if (!selectedUser || !user?.id) return;
 
+    // Fetch initial messages
     const fetchMessages = async () => {
       try {
         const response = await axios.get(
@@ -110,17 +117,67 @@ export default function Messages() {
         console.error("Error fetching messages:", error);
       }
     };
+    fetchMessages();
 
-    const fetchAll = () => {
-      fetchMessages();
-      fetchSessions();
+    // Fetch initial sessions
+    const fetchSessions = async () => {
+      try {
+        const { data } = await axios.get(
+          `http://localhost:5000/sessions/${user.id}/${selectedUser.id}`
+        );
+        setSessions(data);
+        scrollToBottom();
+
+      } catch (error) {
+        console.error("Error fetching sessions:", error);
+      }
     };
+    fetchSessions();
 
-    fetchAll();
-    const interval = setInterval(fetchAll, 5000);
+    // Realtime subscription for messages
+    const messageChannel = supabase
+      .channel('messages-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `receiver_id=eq.${user.id}`
+        },
+        (payload) => {
+          setMessages((prev) => [...prev, payload.new]);
+        }
+      )
+      .subscribe();
 
-    return () => clearInterval(interval);
-  }, [selectedUser, user.id]);
+    // Realtime subscription for sessions
+    const sessionChannel = supabase
+      .channel('sessions-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'sessions'
+        },
+        (payload) => {
+          const s = payload.new || payload.old;
+          if (!s) return;
+          setSessions(prev => {
+            const filtered = prev.filter(sess => sess.id !== s.id);
+            return [...filtered, payload.new];
+          });
+          scrollToBottom();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(messageChannel);
+      supabase.removeChannel(sessionChannel);
+    };
+  }, [selectedUser, user?.id]);
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
@@ -163,6 +220,12 @@ export default function Messages() {
     }
   }, [messages]);
 
+  useEffect(() => {
+    if (sessions.length > 0) {
+      scrollToBottom();
+    }
+  }, [sessions]);
+
   const formatMessageDate = (date) => {
     const messageDate = new Date(date);
     const today = new Date();
@@ -194,10 +257,17 @@ export default function Messages() {
            currentDate.getFullYear() !== previousDate.getFullYear();
   };
 
+  const handleSessionScheduled = async () => {
+    if (!selectedUser || !user?.id) return;
+    await fetchSessions();
+    scrollToBottom();
+  };
+
   const handleAcceptSession = async (sessionId) => {
     try {
       await axios.patch(`http://localhost:5000/sessions/${sessionId}`, { status: 'accepted' });
-      fetchSessions();
+      await fetchSessions();
+      scrollToBottom();
       toast.success('Session accepted!');
     } catch (error) {
       console.error(error);
@@ -208,7 +278,8 @@ export default function Messages() {
   const handleDeclineSession = async (sessionId) => {
     try {
       await axios.patch(`http://localhost:5000/sessions/${sessionId}`, { status: 'declined' });
-      fetchSessions();
+      await fetchSessions();
+      scrollToBottom();
       toast.success('Session declined.');
     } catch (error) {
       console.error(error);
@@ -228,11 +299,6 @@ export default function Messages() {
     ...messages.map(m => ({ ...m, type: 'message' })),
     ...sessions.map(s => ({ ...s, type: 'session' }))
   ].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-
-  const handleSessionScheduled = async () => {
-    if (!selectedUser || !user?.id) return;
-    fetchSessions();
-  };
 
   const SidebarContent = () => (
     <div className="h-full flex flex-col">
@@ -321,8 +387,8 @@ export default function Messages() {
         </SheetContent>
       </Sheet>
 
-      <div className="flex-1 flex flex-col h-full">
-        <div className="sticky top-0 z-40 bg-[#111B23] border-b border-[#232e39] flex items-center justify-between px-4 md:px-8 py-4">
+      <div className="flex-1 flex flex-col max-h-11/12">
+        <div className="sticky top-0  bg-[#111B23] border-b border-[#232e39] flex items-center justify-between px-4 md:px-8 py-4">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
@@ -366,7 +432,7 @@ export default function Messages() {
               {allItems.map((item, index) => (
                 item.type === 'session' ? (
                   <SessionRequestMessage
-                    key={item.id}
+                    key={`session-${item.id}`}
                     session={item}
                     isReceiver={user.id === item.scheduled_with}
                     onAccept={handleAcceptSession}
@@ -375,7 +441,7 @@ export default function Messages() {
                     selectedUser={selectedUser}
                   />
                 ) : (
-                  <div key={item.id}>
+                  <div key={`message-${item.id}`}>
                     {shouldShowDateSeparator(item, allItems[index - 1]) && (
                       <div className="flex justify-center my-4">
                         <span className="text-xs text-gray-400 bg-[#181f25] px-3 py-1 rounded-full">
