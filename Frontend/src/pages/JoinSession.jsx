@@ -109,8 +109,8 @@ export default function JoinSession() {
 
         // Get participants
         const [userA, userB] = await Promise.all([
-          axios.get(`http://localhost:5000/users/${session.scheduled_by}`),
-          axios.get(`http://localhost:5000/users/${session.scheduled_with}`)
+          axios.get(`http://localhost:5000/users/profile/${session.scheduled_by}`),
+          axios.get(`http://localhost:5000/users/profile/${session.scheduled_with}`)
         ]);
 
         // Assign roles based on receiver_id in skillRequest

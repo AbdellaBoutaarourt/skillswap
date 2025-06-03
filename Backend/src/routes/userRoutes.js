@@ -174,7 +174,8 @@ router.post('/login', [
         learning: learningGoals.map(goal => goal.skills.name),
         availability: profileData.availability,
         location: profileData.location,
-        avatar: profileData.avatar_url
+        avatar: profileData.avatar_url,
+        created_at: profileData.created_at
       },
       session: authData.session
     });
@@ -210,21 +211,6 @@ router.post('/resend-confirmation', [
 }
 });
 
-// Get user profile
-router.get('/profile/:id', async (req, res) => {
-  try {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', req.params.id)
-      .single();
-
-    if (error) throw error;
-    res.json(data);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
 
 // Update user profile
 router.put('/profile/:id', [
@@ -457,31 +443,6 @@ router.get('/check-username/:username', async (req, res) => {
   }
 });
 
-// Get user by id
-router.get('/:id', async (req, res) => {
-  const { id } = req.params;
-  try {
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', id)
-      .single();
-    if (userError) throw userError;
-
-    const { data: learningGoals, error: learningError } = await supabase
-      .from('learning_goals')
-      .select('skills(name)')
-      .eq('user_id', id);
-
-    if (learningError) throw learningError;
-
-    user.learning = learningGoals ? learningGoals.map(goal => goal.skills.name) : [];
-
-    res.json(user);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
 
 // Rate user
 router.post('/:id/rate', async (req, res) => {
@@ -527,6 +488,65 @@ router.post('/:id/rate', async (req, res) => {
   } catch (err) {
     console.error('Server error:', err);
     res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get user profile
+router.get('/profile/:id', async (req, res) => {
+  try {
+    // Get user basic info
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', req.params.id)
+      .single();
+
+    if (userError) throw userError;
+
+    // Get learning goals
+    const { data: learningGoals, error: learningError } = await supabase
+      .from('learning_goals')
+      .select('skills(name)')
+      .eq('user_id', req.params.id);
+
+    if (learningError) throw learningError;
+
+    // Get all completed sessions for the user, with skill request info
+    const { data: sessions, error: sessionsError } = await supabase
+      .from('sessions')
+      .select(`
+        *,
+        skill_requests!inner (
+          receiver_id,
+          requested_skill
+        )
+      `)
+      .or(`scheduled_by.eq.${req.params.id},scheduled_with.eq.${req.params.id}`)
+      .eq('status', 'accepted');
+
+    if (sessionsError) throw sessionsError;
+
+    const userId = req.params.id;
+
+    const teachingSessions = sessions.filter(session =>
+      session.skill_requests && session.skill_requests.receiver_id == userId
+    );
+    const learningSessions = sessions.filter(session =>
+      session.skill_requests && session.skill_requests.receiver_id !== userId
+    );
+
+    // Combine all data
+    const response = {
+      ...userData,
+      learning: learningGoals.map(goal => goal.skills.name),
+      teaching_sessions: teachingSessions,
+      learning_sessions: learningSessions
+    };
+
+    res.json(response);
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 

@@ -48,7 +48,7 @@ export default function Messages() {
         const enrichedRequests = await Promise.all(
           acceptedRequests.map(async (req) => {
             const otherUserId = req.requester_id === user.id ? req.receiver_id : req.requester_id;
-            const { data: otherUser } = await axios.get(`http://localhost:5000/users/${otherUserId}`);
+            const { data: otherUser } = await axios.get(`http://localhost:5000/users/profile/${otherUserId}`);
             return {
               otherUser,
               last_message: "Start a conversation",
@@ -81,7 +81,7 @@ export default function Messages() {
           if (conversation) {
             setSelectedUser(conversation.otherUser);
           } else {
-            const { data: otherUser } = await axios.get(`http://localhost:5000/users/${userId}`);
+            const { data: otherUser } = await axios.get(`http://localhost:5000/users/profile/${userId}`);
             setSelectedUser(otherUser);
           }
         }
