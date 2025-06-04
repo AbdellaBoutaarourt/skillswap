@@ -229,10 +229,10 @@ export default function User() {
           )}
           {!hasAcceptedRequest && (
             <div className=" text-black rounded-2xl  p-8 flex flex-col items-center max-w-xl w-full md:w-[420px] ml-0 md:ml-8">
-              {showDeclinedMessage && (
-                <div className="mb-6 text-center text-base font-medium text-white">
+          {showDeclinedMessage && (
+              <div className="mb-6 text-center text-base font-medium text-white">
                   You declined the request. Would you like to learn a new skill instead?
-                </div>
+              </div>
               )}
               <Button
                 className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-8 rounded-lg transition flex items-center gap-2 shadow"
@@ -242,10 +242,10 @@ export default function User() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                 </svg>
                 Learn from this SkillMate
-              </Button>
+                </Button>
             </div>
           )}
-          {(requestStatus === 'accepted' || hasAcceptedRequest) && (
+          {(requestStatus === 'accepted' || (hasAcceptedRequest && requestStatus !== 'pending')) && (
             <div className=" text-black rounded-2xl  p-8 flex flex-col items-center max-w-xl w-full md:w-[420px] ml-0 md:ml-8">
               <Button
                 className="bg-button hover:bg-blue-700 text-white font-bold py-2 px-8 rounded-lg transition flex items-center gap-2"

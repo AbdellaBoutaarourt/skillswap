@@ -225,10 +225,12 @@ export default function SignUp() {
         bio: form.bio,
         skills: form.skills || [],
         learning: form.learning || [],
-        availability: form.availability ? [
-          new Date(form.availability.from).toISOString().split("T")[0],
-          new Date(form.availability.to).toISOString().split("T")[0]
-        ] : [],
+        availability: Array.isArray(form.availability) && form.availability.length === 2
+          ? [
+              new Date(form.availability.from).toISOString().split("T")[0],
+              new Date(form.availability.to).toISOString().split("T")[0]
+            ]
+          : [],
         social: form.social,
         avatar: avatarUrl
       };
@@ -379,7 +381,7 @@ export default function SignUp() {
                   </div>
                   <div>
                     <Label htmlFor="location" className="text-white">Location (city or region)</Label>
-                    <Input name="location" id="location" value={form.location} onChange={handleChange} placeholder="e.g. Amsterdam" className="bg-[#232b32] text-white" />
+                    <Input name="location" id="location" value={form.location} onChange={handleChange} placeholder="e.g. Brussels" className="bg-[#232b32] text-white" />
                     {errors.location && <div className="text-red-400 text-xs mt-1">{errors.location}</div>}
                   </div>
                   <div className="flex justify-between gap-2 pt-4">

@@ -110,7 +110,12 @@ export default function Sessions() {
     }
   };
 
-  const canJoinSession = () => true;
+  const canJoinSession = (session) => {
+    const now = new Date();
+    const start = new Date(session.start_time);
+    const end = new Date(session.end_time);
+    return now >= new Date(start.getTime() - 10 * 60000) && now <= end;
+  };
 
   const submitRating = async (sessionId) => {
     try {
@@ -296,7 +301,7 @@ export default function Sessions() {
                     </div>
 
                     {session.mode === 'online' ? (
-                      canJoinSession() ? (
+                      canJoinSession(session) ? (
                         <Button
                           className="bg-button hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
                           onClick={() => {

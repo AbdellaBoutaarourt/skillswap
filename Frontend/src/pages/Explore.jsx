@@ -275,41 +275,43 @@ export default function Explore() {
                     </div>
                     </div>
                     <div className="flex justify-end mt-2">
-                      <Dialog open={openDialog && selectedUser?.id === user.id} onOpenChange={open => { setOpenDialog(open); if (!open) setSelectedSkill(""); }}>
-                        <DialogTrigger asChild>
-                          <Button  onClick={() => { setSelectedUser(user); setSelectedSkill(""); }}>Send Swap Request !</Button>
-                        </DialogTrigger>
-                        <DialogContent className="bg-[#111B23] text-white border-white/20">
-                          <DialogHeader>
-                            <DialogTitle className="text-xl md:text-2xl font-bold">Send a Swap Request</DialogTitle>
-                            <div className=" text-gray-500 font-semibold text-base md:text-sm">
-                              Choose the skill you want to learn from {user.name}
-                            </div>
-                          </DialogHeader>
-                          <Select value={selectedSkill} onValueChange={setSelectedSkill}>
-                            <SelectTrigger className="w-full bg-[#181f25] border-gray-700">
-                              <SelectValue placeholder="Select a skill..." />
-                            </SelectTrigger>
-                            <SelectContent className="bg-[#181f25] border-gray-700">
-                              {user.skills?.map((skill, idx) => (
-                                <SelectItem key={idx} value={skill} className="text-white hover:bg-[#2194F2]">{skill}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <DialogFooter className="mt-4">
-                            <Button
-                              disabled={!selectedSkill || alreadyRequested}
-                              onClick={() => {
-                                setOpenDialog(false);
-                                handleSwapRequest(user.id, selectedSkill, user.name);
-                              }}
-                              className="w-full"
-                            >
-                              {alreadyRequested ? "Already requested" : "Confirm"}
-                            </Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
+                      {user.id !== currentUserId && (
+                        <Dialog open={openDialog && selectedUser?.id === user.id} onOpenChange={open => { setOpenDialog(open); if (!open) setSelectedSkill(""); }}>
+                          <DialogTrigger asChild>
+                            <Button onClick={() => { setSelectedUser(user); setSelectedSkill(""); }}>Send Swap Request !</Button>
+                          </DialogTrigger>
+                          <DialogContent className="bg-[#111B23] text-white border-white/20">
+                            <DialogHeader>
+                              <DialogTitle className="text-xl md:text-2xl font-bold">Send a Swap Request</DialogTitle>
+                              <div className=" text-gray-500 font-semibold text-base md:text-sm">
+                                Choose the skill you want to learn from {user.name}
+                              </div>
+                            </DialogHeader>
+                            <Select value={selectedSkill} onValueChange={setSelectedSkill}>
+                              <SelectTrigger className="w-full bg-[#181f25] border-gray-700">
+                                <SelectValue placeholder="Select a skill..." />
+                              </SelectTrigger>
+                              <SelectContent className="bg-[#181f25] border-gray-700">
+                                {user.skills?.map((skill, idx) => (
+                                  <SelectItem key={idx} value={skill} className="text-white hover:bg-[#2194F2]">{skill}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <DialogFooter className="mt-4">
+                              <Button
+                                disabled={!selectedSkill || alreadyRequested}
+                                onClick={() => {
+                                  setOpenDialog(false);
+                                  handleSwapRequest(user.id, selectedSkill, user.name);
+                                }}
+                                className="w-full"
+                              >
+                                {alreadyRequested ? "Already requested" : "Confirm"}
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      )}
                     </div>
                   </div>
                 </div>
