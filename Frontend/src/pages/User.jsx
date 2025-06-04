@@ -14,7 +14,6 @@ export default function User() {
   const location = useLocation();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [tab, setTab] = useState("skills");
   const [range, setRange] = useState(null);
   const [requestStatus, setRequestStatus] = useState(null);
@@ -23,6 +22,9 @@ export default function User() {
   const [requestId, setRequestId] = useState(null);
   const [requestedSkill, setRequestedSkill] = useState(null);
   const [showDeclinedMessage, setShowDeclinedMessage] = useState(false);
+  const [hasAcceptedRequest, setHasAcceptedRequest] = useState(false);
+  const [existingRequests, setExistingRequests] = useState([]);
+  const currentUser = JSON.parse(localStorage.getItem("user"));
 
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
@@ -39,11 +41,15 @@ export default function User() {
   useEffect(() => {
     const fetchRequests = async () => {
       try {
+        const currentUser = JSON.parse(localStorage.getItem('user'));
+        if (!currentUser) return;
+
         const response = await axios.get(`http://localhost:5000/skills/skill-requests/user/${id}`);
         const requests = response.data;
 
         const searchParams = new URLSearchParams(location.search);
         const requestIdFromUrl = searchParams.get('requestId');
+        setExistingRequests(requests);
 
         if (requestIdFromUrl) {
           const specificRequest = requests.find(req => req.id === requestIdFromUrl);
@@ -60,6 +66,14 @@ export default function User() {
             setRequestStatus(latestRequest.status);
           }
         }
+
+        // Check if there's an accepted request between users
+        const acceptedRequest = requests.find(req =>
+          (req.requester_id === currentUser.id || req.receiver_id === currentUser.id) &&
+          req.status === 'accepted'
+        );
+        setHasAcceptedRequest(acceptedRequest);
+
       } catch (error) {
         console.error('Error fetching requests:', error);
       }
@@ -75,8 +89,6 @@ export default function User() {
     axios.get(`http://localhost:5000/users/profile/${id}`)
       .then(res => {
         setUser(res.data);
-        console.log(res.data);
-        setError(null);
         if (res.data.availability && Array.isArray(res.data.availability) && res.data.availability.length === 2) {
           setRange({
             from: new Date(res.data.availability[0]),
@@ -86,9 +98,9 @@ export default function User() {
           setRange(null);
         }
       })
-      .catch(() => setError("User not found"))
       .finally(() => setLoading(false));
   }, [id]);
+
 
   const handleAccept = async () => {
     try {
@@ -124,6 +136,20 @@ export default function User() {
       return;
     }
 
+    const currentUser = JSON.parse(localStorage.getItem("user"));
+    const alreadyRequested = existingRequests.some(
+      req =>
+        req.requester_id === currentUser.id &&
+        req.receiver_id === user.id &&
+        req.requested_skill === selectedSkill &&
+        req.status !== 'declined'
+    );
+
+    if (alreadyRequested) {
+      toast.error("You have already requested this skill.");
+      return;
+    }
+
     try {
       await axios.post(`http://localhost:5000/skills/skill-requests`, {
         requester_id,
@@ -138,13 +164,11 @@ export default function User() {
   };
 
   if (loading) return (
-    <div className="text-center py-8">
+    <div className="min-h-screen text-center py-8">
       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto"></div>
       <p className="mt-4 text-gray-400">Loading user profile...</p>
     </div>
   );
-  if (error) return <div className="text-center py-8 text-red-500">{error}</div>;
-  if (!user) return null;
 
   return (
     <div className="min-h-screen text-white flex flex-col items-center py-12 mx-5">
@@ -182,7 +206,9 @@ export default function User() {
               </div>
             </div>
           </div>
-          {requestStatus === 'pending' && (
+          {requestStatus === 'pending' && requestId && existingRequests.find(
+            req => req.id === requestId && req.receiver_id === currentUser.id
+          ) && (
             <div className="bg-[#181f25] text-white rounded-lg shadow-lg px-8 py-6 flex flex-col items-center max-w-xl w-full md:w-[420px] ml-0 border border-white/20">
               <div className="mb-6 text-center text-base font-medium">
                 <span className="text-white font-bold">{ user.username}</span> wants to learn: <span className="font-bold text-blue-400">{requestedSkill}</span>
@@ -201,19 +227,25 @@ export default function User() {
               </div>
             </div>
           )}
-          {showDeclinedMessage && (
-            <div className="bg-[#181f25] text-white rounded-2xl shadow-2xl px-8 py-6 flex flex-col items-center max-w-xl w-full md:w-[420px] ml-0 border border-[#232e39]">
-              <div className="mb-6 text-center text-base font-medium text-white">
-                You declined the request. Would you like to propose a skill swap instead?
-              </div>
-              <div className="flex gap-4 w-full justify-center">
-                <Button className="w-1/2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-8 rounded-lg transition shadow" onClick={() => setShowSwapModal(true)}>
-                  Swap Skills
-                </Button>
-              </div>
+          {!hasAcceptedRequest && (
+            <div className=" text-black rounded-2xl  p-8 flex flex-col items-center max-w-xl w-full md:w-[420px] ml-0 md:ml-8">
+              {showDeclinedMessage && (
+                <div className="mb-6 text-center text-base font-medium text-white">
+                  You declined the request. Would you like to learn a new skill instead?
+                </div>
+              )}
+              <Button
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-8 rounded-lg transition flex items-center gap-2 shadow"
+                onClick={() => setShowSwapModal(true)}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+                Learn from this SkillMate
+              </Button>
             </div>
           )}
-          {requestStatus === 'accepted' && (
+          {(requestStatus === 'accepted' || hasAcceptedRequest) && (
             <div className=" text-black rounded-2xl  p-8 flex flex-col items-center max-w-xl w-full md:w-[420px] ml-0 md:ml-8">
               <Button
                 className="bg-button hover:bg-blue-700 text-white font-bold py-2 px-8 rounded-lg transition flex items-center gap-2"
@@ -223,19 +255,6 @@ export default function User() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
                 Send Message
-              </Button>
-            </div>
-          )}
-          {!requestStatus && (
-            <div className="bg-[#181f25] text-white rounded-lg shadow-2xl p-8 flex flex-col items-center max-w-xl w-full md:w-[420px] ml-0 md:ml-8 border border-[#232e39]">
-              <Button
-                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-8 rounded-lg transition flex items-center gap-2 shadow"
-                onClick={() => setShowSwapModal(true)}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                </svg>
-                Propose Skill Swap
               </Button>
             </div>
           )}
@@ -375,14 +394,13 @@ export default function User() {
               {/* Community Feedback Stat */}
               <div className="bg-[#181f25] rounded-lg p-4 border border-gray-700">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center">
-                    <svg className="w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                <svg className="w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                     </svg>
                   </div>
                   <div>
                     <h3 className="font-semibold text-white">Community Feedback</h3>
-                    <p className="text-sm text-gray-400">Based on {user.rating_count || 0} reviews</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -395,22 +413,7 @@ export default function User() {
                 </div>
                 <p className="text-xs text-gray-400">Based on {user.rating_count || 0} reviews</p>
               </div>
-              {/* Expertise Stat */}
-              <div className="bg-[#181f25] rounded-lg p-4 border border-gray-700">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center">
-                  <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-white">SkillMastery</h3>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-400">Skills you&apos;ve unlocked</p>
-                <p className="text-2xl font-bold text-white mt-2">{user.skills?.length || 0}</p>
-                <p className="text-xs text-gray-400 mt-1">skills mastered</p>
-              </div>
+
               {/* Time in Community Stat */}
               <div className="bg-[#181f25] rounded-lg p-4 border border-gray-700">
                 <div className="flex items-center gap-3 mb-3">
@@ -452,11 +455,30 @@ export default function User() {
             </Select>
           </div>
           <div className="flex justify-end gap-4 mt-6">
-            <Button variant="outline" onClick={() => setShowSwapModal(false)}>
+            <Button variant="outline" className="bg-transparent text-white border border-white cursor-pointer hover:bg-white/10 hover:text-white" onClick={() => setShowSwapModal(false)}>
               Cancel
             </Button>
-            <Button className="bg-button hover:bg-blue-700" onClick={handleSwapSkill}>
-              Propose Swap
+            <Button
+              disabled={!selectedSkill || existingRequests.some(
+                req =>
+                  req.requester_id === JSON.parse(localStorage.getItem("user")).id &&
+                  req.receiver_id === id &&
+                  req.requested_skill === selectedSkill &&
+                  req.status !== 'declined'
+              )}
+              onClick={() => {
+                setShowSwapModal(false);
+                handleSwapSkill();
+              }}
+              className="bg-button hover:bg-blue-700"
+            >
+              {existingRequests.some(
+                req =>
+                  req.requester_id === JSON.parse(localStorage.getItem("user")).id &&
+                  req.receiver_id === id &&
+                  req.requested_skill === selectedSkill &&
+                  req.status !== 'declined'
+              ) ? "Already requested" : "Confirm"}
             </Button>
           </div>
         </DialogContent>

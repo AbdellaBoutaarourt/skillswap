@@ -11,23 +11,29 @@ import {
   AlertDialogHeader,
   AlertDialogFooter,
   AlertDialogTitle,
-  AlertDialogCancel
+  AlertDialogCancel,
+  AlertDialogDescription
 } from "@/components/ui/alert-dialog";
 import { toast, Toaster } from "sonner";
 import MultiSelect from "@/components/MultiSelect";
+import { Label } from "@/components/ui/label";
+import { DatePickerWithRange } from "@/components/datePickerRange";
 
 function Profile() {
   const [tab, setTab] = useState("skills");
   const [user, setUser] = useState({});
   const [form, setForm] = useState({
-    username: user.username || "",
-    location: user.location || "",
+    username: user.username,
+    location: user.location,
     bio: user.bio || "",
     skills: user.skills || [],
-    learning: user.learning || []
+    learning: user.learning || [],
+    availability: user.availability && user.availability.length === 2 ? {
+      from: new Date(user.availability[0]),
+      to: new Date(user.availability[1])
+    } : null
   });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
   const [success, setSuccess] = useState("");
   const [open, setOpen] = useState(false);
   const [availableSkills, setAvailableSkills] = useState([]);
@@ -49,13 +55,15 @@ function Profile() {
         }));
         setAvailableSkills(options);
       } catch (err) {
-        console.error('Erreur lors du chargement des compétences:', err);
+        console.error('Error loading skills:', err);
       }
     }
     fetchSkills();
   }, []);
 
+
   async function fetchProfile() {
+    setLoading(true);
     try {
       const localUser = JSON.parse(localStorage.getItem('user'));
       const { data } = await axios.get(`http://localhost:5000/users/profile/${localUser.id}`);
@@ -66,15 +74,28 @@ function Profile() {
         location: data.location || "",
         bio: data.bio || "",
         skills: data.skills || [],
-        learning: data.learning || []
+        learning: data.learning || [],
+        availability: data.availability && data.availability.length === 2 ? {
+          from: new Date(data.availability[0]),
+          to: new Date(data.availability[1])
+        } : null
       }));
+      setLoading(false);
     } catch (err) {
-      console.error('Erreur lors du chargement du profil:', err);
+      console.error('Error loading profile:', err);
     }
   }
+
   useEffect(() => {
     fetchProfile();
   }, []);
+
+  if (loading) return (
+    <div className=" min-h-screen text-center py-8">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto"></div>
+      <p className="mt-4 text-gray-400">Loading user profile...</p>
+    </div>
+  );
 
   let range = null;
   if (user.availability && user.availability.length === 2) {
@@ -87,7 +108,6 @@ function Profile() {
   async function handleEditSubmit(e) {
     e.preventDefault();
     setLoading(true);
-    setError("");
     setSuccess("");
     try {
       const payload = {
@@ -95,7 +115,11 @@ function Profile() {
         location: form.location,
         bio: form.bio,
         skills: form.skills,
-        learning: form.learning
+        learning: form.learning,
+        availability: form.availability?.from && form.availability?.to ? [
+          new Date(form.availability.from.getTime() - form.availability.from.getTimezoneOffset() * 60000).toISOString().split("T")[0],
+          new Date(form.availability.to.getTime() - form.availability.to.getTimezoneOffset() * 60000).toISOString().split("T")[0]
+        ] : []
       };
       await axios.put(`http://localhost:5000/users/profile/${user.id}`, payload);
 
@@ -112,7 +136,7 @@ function Profile() {
       });
       fetchProfile();
     } catch (err) {
-      setError(err.response?.data?.error || "Update failed");
+      console.error('Error updating profile:', err);
     } finally {
       setLoading(false);
     }
@@ -160,25 +184,36 @@ function Profile() {
           </div>
           <div className="flex gap-4 md:gap-6 justify-center md:justify-end">
             <AlertDialog open={open} onOpenChange={setOpen}>
-              <AlertDialogTrigger asChild>
+              <AlertDialogTrigger>
                 <Button variant="outline" className="border-white cursor-pointer hover:text-white bg-transparent text-white font-semibold rounded-lg px-8 py-2 h-11 text-base transition hover:bg-white/10">Edit profile</Button>
               </AlertDialogTrigger>
-              <AlertDialogContent className="bg-[#181f25] text-white">
-                <form onSubmit={handleEditSubmit} className="flex flex-col gap-4">
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Edit your profile</AlertDialogTitle>
-                  </AlertDialogHeader>
+              <AlertDialogContent className="bg-[#181f25] text-white border border-gray-700">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Edit Profile</AlertDialogTitle>
+                  <AlertDialogDescription className="text-gray-400">
+                    Update your profile information, skills, and availability.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <form onSubmit={handleEditSubmit} className="space-y-4">
                   <div>
-                    <label className="block text-sm mb-1">Username</label>
+                    <Label className="block text-sm mb-1">Username</Label>
                     <Input name="username" value={form.username} onChange={handleChange} className="bg-[#232b32] text-white" />
                   </div>
                   <div>
-                    <label className="block text-sm mb-1">Location</label>
+                    <Label className="block text-sm mb-1">Location</Label>
                     <Input name="location" value={form.location} onChange={handleChange} className="bg-[#232b32] text-white" />
                   </div>
                   <div>
-                    <label className="block text-sm mb-1">Bio</label>
-                    <Input name="bio" value={form.bio} onChange={handleChange} className="bg-[#232b32] text-white" />
+                    <Label className="block text-sm mb-1">Bio</Label>
+                    <Input name="bio" id="bio" value={form.bio} onChange={handleChange} placeholder="Bio" className="bg-[#232b32] text-white" />
+                  </div>
+                  <div>
+                    <Label className="block text-sm mb-1">Availability</Label>
+                    <DatePickerWithRange
+                      className="w-full"
+                      selected={form.availability}
+                      onSelect={val => setForm(f => ({ ...f, availability: val }))}
+                    />
                   </div>
                   <MultiSelect
                     label="👨‍🎓 Which skills do you offer?"
@@ -192,7 +227,6 @@ function Profile() {
                     selected={form.learning}
                     setSelected={learning => setForm(f => ({ ...f, learning }))}
                   />
-                  {error && <div className="text-red-400 text-sm">{error}</div>}
                   {success && <div className="text-green-400 text-sm">{success}</div>}
                   <AlertDialogFooter>
                     <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-6" disabled={loading}>{loading ? 'Saving...' : 'Save'}</Button>
@@ -245,7 +279,7 @@ function Profile() {
               <div className="font-bold text-xl mb-3 text-white">Skills</div>
               <div className="flex flex-wrap gap-4">
                 {(user.skills && user.skills.length > 0 ? user.skills : ["No skills"]).map(skill => (
-                  <span key={skill} className="border border-white rounded-lg px-5 py-2 text-base text-white bg-transparent font-normal">{skill}</span>
+                  <span key={skill} className="rounded-lg px-5 py-2 text-base text-white bg-blue-500/20 font-normal">{skill}</span>
                 ))}
               </div>
             </div>
@@ -253,7 +287,7 @@ function Profile() {
               <div className="font-bold text-xl mb-3 text-white">Skills desired</div>
               <div className="flex flex-wrap gap-4">
                 {(user.learning && user.learning.length > 0 ? user.learning : ["No learning goals"]).map(skill => (
-                  <span key={skill} className="border border-white rounded-lg px-5 py-2 text-base text-white bg-transparent font-normal">{skill}</span>
+                  <span key={skill} className="rounded-lg px-5 py-2 text-base text-white bg-purple-500/20 font-normal">{skill}</span>
                 ))}
               </div>
             </div>
@@ -342,7 +376,6 @@ function Profile() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-white">Community Feedback</h3>
-                    <p className="text-sm text-gray-400">Based on {user.rating_count || 0} reviews</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -354,22 +387,6 @@ function Profile() {
                   <span className="text-md font-bold text-white">{user.rating ? user.rating.toFixed(1) : 0}/5</span>
                 </div>
                 <p className="text-xs text-gray-400">Based on {user.rating_count || 0} reviews</p>
-              </div>
-              {/* Expertise Stat */}
-              <div className="bg-[#181f25] rounded-lg p-4 border border-gray-700">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center">
-                    <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-white">SkillMastery</h3>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-400">Skills you&apos;ve unlocked</p>
-                <p className="text-2xl font-bold text-white mt-2">{user.skills?.length || 0}</p>
-                <p className="text-xs text-gray-400 mt-1">skills mastered</p>
               </div>
               {/* Time in Community Stat */}
               <div className="bg-[#181f25] rounded-lg p-4 border border-gray-700">

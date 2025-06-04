@@ -24,7 +24,7 @@ const Header = () => {
 
         const enriched = await Promise.all(
           pending.map(async (req) => {
-            const { data: requester } = await axios.get(`http://localhost:5000/users/${req.requester_id}`);
+            const { data: requester } = await axios.get(`http://localhost:5000/users/profile/${req.requester_id}`);
             return { ...req, requester };
           })
         );

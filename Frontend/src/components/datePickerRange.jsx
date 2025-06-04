@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { addDays, format } from "date-fns";
+import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 import PropTypes from "prop-types";
 
@@ -15,15 +15,12 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-export function DatePickerWithRange({ className, onSelect }) {
+export function DatePickerWithRange({ className, onSelect, selected }) {
   const currentDate = new Date();
 
   currentDate.setMonth(currentDate.getMonth() - 1);
 
-  const [date, setDate] = useState({
-    from: new Date(),
-    to: addDays(new Date(), 20),
-  });
+  const [date, setDate] = useState(selected || { from: undefined, to: undefined });
 
   useEffect(() => {
     onSelect(date);
@@ -71,4 +68,8 @@ export function DatePickerWithRange({ className, onSelect }) {
 DatePickerWithRange.propTypes = {
   className: PropTypes.string,
   onSelect: PropTypes.func.isRequired,
+  selected: PropTypes.shape({
+    from: PropTypes.instanceOf(Date),
+    to: PropTypes.instanceOf(Date)
+  })
 };
