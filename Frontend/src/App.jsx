@@ -15,6 +15,7 @@ import User from "./pages/User";
 import Messages from "./pages/Messages";
 import Sessions from "./pages/Sessions";
 import JoinSession from "./pages/JoinSession";
+import SkillMashups from "./pages/SkillMashups";
 
 const App = () => {
   useEffect(() => {
@@ -38,6 +39,7 @@ const App = () => {
           <Route path="/messages/:userId" element={<Messages />} />
           <Route path="/sessions" element={<Sessions />} />
           <Route path="/session/:sessionId" element={<JoinSession />} />
+          <Route path="/mashups" element={<SkillMashups />} />
         </Routes>
         <Footer />
     </div>

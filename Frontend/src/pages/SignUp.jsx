@@ -227,8 +227,8 @@ export default function SignUp() {
         learning: form.learning || [],
         availability: Array.isArray(form.availability) && form.availability.length === 2
           ? [
-              new Date(form.availability.from).toISOString().split("T")[0],
-              new Date(form.availability.to).toISOString().split("T")[0]
+          new Date(form.availability.from).toISOString().split("T")[0],
+          new Date(form.availability.to).toISOString().split("T")[0]
             ]
           : [],
         social: form.social,

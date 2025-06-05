@@ -87,11 +87,11 @@ export default function Explore() {
       filteredUsers = filteredUsers.filter(user => {
         const fullName = `${user.first_name || ""} ${user.last_name || ""}`.toLowerCase();
         return (
-          (user.name && user.name.toLowerCase().includes(query)) ||
+        (user.name && user.name.toLowerCase().includes(query)) ||
           (user.location && user.location.toLowerCase().includes(query)) ||
           fullName.includes(query) ||
           (Array.isArray(user.skills) && user.skills.some(skill => skill?.toLowerCase().includes(query)))
-        );
+      );
       });
     }
 
@@ -100,7 +100,10 @@ export default function Explore() {
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
-    if (!user.id) return;
+    if (!user || !user.id) {
+      setExistingRequests([]);
+      return;
+    }
     axios.get(`http://localhost:5000/skills/skill-requests/user/${user.id}`)
       .then(res => setExistingRequests(res.data))
       .catch(() => setExistingRequests([]));
@@ -108,13 +111,21 @@ export default function Explore() {
 
   const handleSwapRequest = async (receiver_id, requested_skill, receiver_name) => {
     const user = JSON.parse(localStorage.getItem("user"));
-    const requester_id = user.id;
+    const requester_id = user && user.id;
     if (!requester_id) {
       toast("Error", {
         description: "You must be logged in to send a swap request.",
-        duration: 4000,
-        variant: "destructive"
+        duration: 2000,
+        variant: "destructive",
+        style: {
+          background: "#181f25",
+          color: "white",
+          border: "1px solid #232e39"
+        }
       });
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 1500);
       return;
     }
     try {
@@ -126,7 +137,12 @@ export default function Explore() {
       toast("Request sent!", {
         description: `Your swap request for ${requested_skill} has been sent to ${receiver_name}.`,
         duration: 4000,
-        variant: "success"
+        variant: "success",
+        style: {
+          background: "#181f25",
+          color: "white",
+          border: "1px solid #232e39"
+        }
       });
       const response = await axios.get(`http://localhost:5000/skills/skill-requests/user/${user.id}`);
       setExistingRequests(response.data);
@@ -135,10 +151,18 @@ export default function Explore() {
       toast("Error", {
         description: "Failed to send swap request.",
         duration: 4000,
-        variant: "destructive"
+        variant: "destructive",
+        style: {
+          background: "#181f25",
+          color: "white",
+          border: "1px solid #232e39"
+        }
       });
     }
   };
+
+  const currentUser = JSON.parse(localStorage.getItem("user"));
+  const currentUserId = currentUser ? currentUser.id : null;
 
   return (
     <div className="flex min-h-screen bg-[#111B23] text-white">
@@ -213,7 +237,6 @@ export default function Explore() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {users.map(user => {
-              const currentUserId = JSON.parse(localStorage.getItem("user")).id;
               const alreadyRequested = existingRequests.some(
                 req =>
                   req.requester_id === currentUserId &&
@@ -272,45 +295,45 @@ export default function Explore() {
                           </span>
                         ))}
                       </div>
-                    </div>
+                      </div>
                     </div>
                     <div className="flex justify-end mt-2">
                       {user.id !== currentUserId && (
-                        <Dialog open={openDialog && selectedUser?.id === user.id} onOpenChange={open => { setOpenDialog(open); if (!open) setSelectedSkill(""); }}>
-                          <DialogTrigger asChild>
-                            <Button onClick={() => { setSelectedUser(user); setSelectedSkill(""); }}>Send Swap Request !</Button>
-                          </DialogTrigger>
+                      <Dialog open={openDialog && selectedUser?.id === user.id} onOpenChange={open => { setOpenDialog(open); if (!open) setSelectedSkill(""); }}>
+                        <DialogTrigger asChild>
+                          <Button onClick={() => { setSelectedUser(user); setSelectedSkill(""); }}>Send Swap Request !</Button>
+                        </DialogTrigger>
                           <DialogContent className="bg-[#111B23] text-white border-white/20">
-                            <DialogHeader>
-                              <DialogTitle className="text-xl md:text-2xl font-bold">Send a Swap Request</DialogTitle>
+                          <DialogHeader>
+                            <DialogTitle className="text-xl md:text-2xl font-bold">Send a Swap Request</DialogTitle>
                               <div className=" text-gray-500 font-semibold text-base md:text-sm">
                                 Choose the skill you want to learn from {user.name}
-                              </div>
-                            </DialogHeader>
-                            <Select value={selectedSkill} onValueChange={setSelectedSkill}>
-                              <SelectTrigger className="w-full bg-[#181f25] border-gray-700">
-                                <SelectValue placeholder="Select a skill..." />
-                              </SelectTrigger>
-                              <SelectContent className="bg-[#181f25] border-gray-700">
-                                {user.skills?.map((skill, idx) => (
-                                  <SelectItem key={idx} value={skill} className="text-white hover:bg-[#2194F2]">{skill}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <DialogFooter className="mt-4">
-                              <Button
-                                disabled={!selectedSkill || alreadyRequested}
-                                onClick={() => {
-                                  setOpenDialog(false);
-                                  handleSwapRequest(user.id, selectedSkill, user.name);
-                                }}
-                                className="w-full"
-                              >
-                                {alreadyRequested ? "Already requested" : "Confirm"}
-                              </Button>
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
+                            </div>
+                          </DialogHeader>
+                          <Select value={selectedSkill} onValueChange={setSelectedSkill}>
+                            <SelectTrigger className="w-full bg-[#181f25] border-gray-700">
+                              <SelectValue placeholder="Select a skill..." />
+                            </SelectTrigger>
+                            <SelectContent className="bg-[#181f25] border-gray-700">
+                              {user.skills?.map((skill, idx) => (
+                                <SelectItem key={idx} value={skill} className="text-white hover:bg-[#2194F2]">{skill}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <DialogFooter className="mt-4">
+                            <Button
+                              disabled={!selectedSkill || alreadyRequested}
+                              onClick={() => {
+                                setOpenDialog(false);
+                                handleSwapRequest(user.id, selectedSkill, user.name);
+                              }}
+                              className="w-full"
+                            >
+                              {alreadyRequested ? "Already requested" : "Confirm"}
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
                       )}
                     </div>
                   </div>

@@ -170,12 +170,14 @@ const Header = () => {
         >
           Explore
         </Link>
-        <Link
-          to="/sessions"
-          className={`text-white hover:text-secondary font-medium border-b-2 transition-all duration-150 text-lg ${location.pathname.startsWith('/sessions') ? 'border-blue-500' : 'border-transparent hover:border-white'}`}
-        >
-          Sessions
-        </Link>
+        {user && (
+          <Link
+            to="/sessions"
+            className={`text-white hover:text-secondary font-medium border-b-2 transition-all duration-150 text-lg ${location.pathname.startsWith('/sessions') ? 'border-blue-500' : 'border-transparent hover:border-white'}`}
+          >
+            Sessions
+          </Link>
+        )}
         {user ? (
           <>
             <Link
@@ -280,9 +282,11 @@ const Header = () => {
           <Link to="/explore" className="text-white hover:text-secondary font-medium border-b-2 border-transparent hover:border-white transition-all duration-150 text-lg" onClick={() => setMenuOpen(false)}>
             Explore
           </Link>
-          <Link to="/sessions" className="text-white hover:text-secondary font-medium border-b-2 border-transparent hover:border-white transition-all duration-150 text-lg" onClick={() => setMenuOpen(false)}>
-            Sessions
-          </Link>
+          {user && (
+            <Link to="/sessions" className="text-white hover:text-secondary font-medium border-b-2 border-transparent hover:border-white transition-all duration-150 text-lg" onClick={() => setMenuOpen(false)}>
+              Sessions
+            </Link>
+          )}
           {user ? (
             <>
               <Link to="/mashups" className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-1.5 rounded-lg font-semibold focus:outline-none transition text-lg cursor-pointer" onClick={() => setMenuOpen(false)}>
@@ -301,7 +305,7 @@ const Header = () => {
                 <span>Sessions</span>
               </Link>
               <Link to="/profile" className="flex items-center space-x-2 px-4 py-2 text-white hover:bg-gray-800 rounded" onClick={() => setMenuOpen(false)}>
-                <img src={user.avatarUrl || defaultAvatar} alt="profile" className="w-7 h-7 rounded-full border-2 border-blue-500 object-cover" />
+                <img src={user.avatar || defaultAvatar} alt="profile" className="w-7 h-7 rounded-full border-2 border-blue-500 object-cover" />
                 <span>Profile</span>
               </Link>
               <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-white hover:bg-gray-800 rounded">
