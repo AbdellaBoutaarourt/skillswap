@@ -13,6 +13,7 @@ import { Label } from "../components/ui/label";
 import { createClient } from '@supabase/supabase-js';
 import defaultAvatar from "../assets/user.png";
 import MultiSelect from "@/components/MultiSelect";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -67,6 +68,7 @@ export default function SignUp() {
   const [submitted, setSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef();
+  const [countries, setCountries] = useState([]);
 
   const checkEmailExists = async (email) => {
     try {
@@ -112,6 +114,14 @@ export default function SignUp() {
     }, 5000);
 
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    fetch('https://countriesnow.space/api/v0.1/countries/positions')
+      .then(res => res.json())
+      .then(data => {
+        setCountries(data.data);
+      });
   }, []);
 
   async function validateStep1() {
@@ -327,27 +337,27 @@ export default function SignUp() {
                   className="space-y-5"
                 >
                   <div>
-                    <Label htmlFor="firstName" className="text-white">First name</Label>
+                    <Label htmlFor="firstName" className="text-white mb-2">First name</Label>
                     <Input name="firstName" id="firstName" value={form.firstName} onChange={handleChange} placeholder="First name" className="bg-[#232b32] text-white" />
                     {errors.firstName && <div className="text-red-400 text-xs mt-1">{errors.firstName}</div>}
                   </div>
                   <div>
-                    <Label htmlFor="lastName" className="text-white">Last name</Label>
+                    <Label htmlFor="lastName" className="text-white mb-2">Last name</Label>
                     <Input name="lastName" id="lastName" value={form.lastName} onChange={handleChange} placeholder="Last name" className="bg-[#232b32] text-white" />
                     {errors.lastName && <div className="text-red-400 text-xs mt-1">{errors.lastName}</div>}
                   </div>
                   <div>
-                    <Label htmlFor="email" className="text-white">Email address</Label>
+                    <Label htmlFor="email" className="text-white mb-2">Email address</Label>
                     <Input name="email" id="email" value={form.email} onChange={handleChange} placeholder="Email address" className="bg-[#232b32] text-white" />
                     {errors.email && <div className="text-red-400 text-xs mt-1">{errors.email}</div>}
                   </div>
                   <div>
-                    <Label htmlFor="password" className="text-white">Password</Label>
+                    <Label htmlFor="password" className="text-white mb-2">Password</Label>
                     <Input name="password" id="password" type="password" value={form.password} onChange={handleChange} placeholder="Password" className="bg-[#232b32] text-white" />
                     {errors.password && <div className="text-red-400 text-xs mt-1">{errors.password}</div>}
                   </div>
                   <div>
-                    <Label htmlFor="confirmPassword" className="text-white">Confirm password</Label>
+                    <Label htmlFor="confirmPassword" className="text-white mb-2">Confirm password</Label>
                     <Input name="confirmPassword" id="confirmPassword" type="password" value={form.confirmPassword} onChange={handleChange} placeholder="Confirm password" className="bg-[#232b32] text-white" />
                     {errors.confirmPassword && <div className="text-red-400 text-xs mt-1">{errors.confirmPassword}</div>}
                   </div>
@@ -375,13 +385,22 @@ export default function SignUp() {
                     </div>
                   </div>
                   <div>
-                    <Label htmlFor="username" className="text-white">Username</Label>
+                    <Label htmlFor="username" className="text-white mb-2">Username</Label>
                     <Input name="username" id="username" value={form.username} onChange={handleChange} placeholder="Username" className="bg-[#232b32] text-white" />
                     {errors.username && <div className="text-red-400 text-xs mt-1">{errors.username}</div>}
                   </div>
                   <div>
-                    <Label htmlFor="location" className="text-white">Location (city or region)</Label>
-                    <Input name="location" id="location" value={form.location} onChange={handleChange} placeholder="e.g. Brussels" className="bg-[#232b32] text-white" />
+                    <Label htmlFor="location" className="text-white mb-2">Country</Label>
+                    <Select value={form.location} onValueChange={value => setForm(f => ({ ...f, location: value }))}>
+                      <SelectTrigger className="w-full bg-[#232b32] text-white">
+                        <SelectValue placeholder="Select a country" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#232b32] text-white">
+                        {countries.map(c => (
+                          <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     {errors.location && <div className="text-red-400 text-xs mt-1">{errors.location}</div>}
                   </div>
                   <div className="flex justify-between gap-2 pt-4">
@@ -414,15 +433,15 @@ export default function SignUp() {
                   {errors.learning && <div className="text-red-400 text-xs mt-1">{errors.learning}</div>}
 
                   <div>
-                    <Label htmlFor="availability" className="text-white">Availability <span className="text-xs text-gray-400">(optional)</span></Label>
+                    <Label htmlFor="availability" className="text-white mb-2">Availability <span className="text-xs text-gray-400">(optional)</span></Label>
                     <DatePickerWithRange className="w-full max-w-xs" onSelect={val => setForm(f => ({ ...f, availability: val }))} />
                   </div>
                   <div>
-                    <Label htmlFor="bio" className="text-white">Short bio <span className="text-xs text-gray-400">(optional, max. 200 characters)</span></Label>
+                    <Label htmlFor="bio" className="text-white mb-2">Short bio <span className="text-xs text-gray-400">(optional, max. 200 characters)</span></Label>
                     <Input name="bio" id="bio" value={form.bio} onChange={handleChange} maxLength={200} placeholder="Tell something about yourself..." className="bg-[#232b32] text-white" />
                   </div>
                   <div>
-                    <Label htmlFor="social" className="text-white">Social media / portfolio link <span className="text-xs text-gray-400">(optional)</span></Label>
+                    <Label htmlFor="social" className="text-white mb-2">Social media / portfolio link <span className="text-xs text-gray-400">(optional)</span></Label>
                     <Input name="social" id="social" value={form.social} onChange={handleChange} placeholder="e.g. LinkedIn, GitHub, website..." className="bg-[#232b32] text-white" />
                   </div>
                   {errors.submit && (

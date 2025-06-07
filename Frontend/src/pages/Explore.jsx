@@ -7,9 +7,10 @@ import axios from "axios";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogFooter, DialogTitle } from "../components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../components/ui/select";
 import { toast, Toaster } from "sonner"
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 export default function Explore() {
+  const [searchParams] = useSearchParams();
   const [categories, setCategories] = useState([]);
   const [skillsData, setSkillsData] = useState([]);
   const [selectedCategories, setSelectedCategories] = useState([]);
@@ -23,6 +24,7 @@ export default function Explore() {
   const [selectedSkill, setSelectedSkill] = useState("");
   const [existingRequests, setExistingRequests] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
+  const [displayedUsers, setDisplayedUsers] = useState(12);
 
   const fetchCategories = async () => {
     try {
@@ -50,6 +52,18 @@ export default function Explore() {
     fetchCategories();
     fetchUsers();
   }, []);
+
+  useEffect(() => {
+    // Get search query from URL
+    const query = searchParams.get('q');
+    if (query) {
+      setSearchQuery(query);
+    }
+    // Get category from URL
+    const category = searchParams.get('category');
+      setSelectedCategories([category]);
+
+  }, [searchParams, categories]);
 
   useEffect(() => {
     let filteredUsers = [...allUsers];
@@ -96,6 +110,7 @@ export default function Explore() {
     }
 
     setUsers(filteredUsers);
+    setDisplayedUsers(12);
   }, [allUsers, selectedCategories, dateRange, searchQuery, skillsData]);
 
   useEffect(() => {
@@ -113,16 +128,14 @@ export default function Explore() {
     const user = JSON.parse(localStorage.getItem("user"));
     const requester_id = user && user.id;
     if (!requester_id) {
-      toast("Error", {
-        description: "You must be logged in to send a swap request.",
+      toast.error("You must be logged in to send a swap request.", {
         duration: 2000,
-        variant: "destructive",
         style: {
           background: "#181f25",
           color: "white",
           border: "1px solid #232e39"
         }
-      });
+            });
       setTimeout(() => {
         window.location.href = '/login';
       }, 1500);
@@ -134,24 +147,19 @@ export default function Explore() {
         receiver_id,
         requested_skill,
       });
-      toast("Request sent!", {
-        description: `Your swap request for ${requested_skill} has been sent to ${receiver_name}.`,
+      toast.success(`Your swap request for ${requested_skill} has been sent to ${receiver_name}`, {
         duration: 4000,
-        variant: "success",
-        style: {
+    style: {
           background: "#181f25",
           color: "white",
           border: "1px solid #232e39"
-        }
-      });
+        }      });
       const response = await axios.get(`http://localhost:5000/skills/skill-requests/user/${user.id}`);
       setExistingRequests(response.data);
       window.dispatchEvent(new CustomEvent('refreshNotifications'));
     } catch {
-      toast("Error", {
-        description: "Failed to send swap request.",
+      toast.error("You must be logged in to send a swap request.", {
         duration: 4000,
-        variant: "destructive",
         style: {
           background: "#181f25",
           color: "white",
@@ -163,6 +171,10 @@ export default function Explore() {
 
   const currentUser = JSON.parse(localStorage.getItem("user"));
   const currentUserId = currentUser ? currentUser.id : null;
+
+  const loadMoreUsers = () => {
+    setDisplayedUsers(prev => prev + 12);
+  };
 
   return (
     <div className="flex min-h-screen bg-[#111B23] text-white">
@@ -236,7 +248,7 @@ export default function Explore() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {users.map(user => {
+            {users.slice(0, displayedUsers).map(user => {
               const alreadyRequested = existingRequests.some(
                 req =>
                   req.requester_id === currentUserId &&
@@ -249,7 +261,7 @@ export default function Explore() {
                   <img src={user.avatar || defaultAvatar}  alt={user.name} className="w-15 h-15 rounded-full border-2 border-button object-cover mx-auto sm:mx-0" />
                   <div className="flex-1 w-full min-w-0 h-full flex flex-col justify-between">
                     <div>
-                    <Link to={`/profile/${user.id}`} className="font-bold text-lg text-white hover:text-blue-400 transition-colors">
+                    <Link to={user.id === currentUserId ? '/profile' : `/profile/${user.id}`} className="font-bold text-lg text-white hover:text-blue-400 transition-colors">
                       {user.name}
                     </Link>
                     <div className="flex items-center gap-1 text-xs text-gray-400 mb-1">
@@ -342,9 +354,11 @@ export default function Explore() {
             })}
           </div>
         )}
-        <div className="flex justify-center mt-8">
-          <Button>More users</Button>
-        </div>
+        {users.length > displayedUsers && (
+          <div className="flex justify-center mt-8">
+            <Button onClick={loadMoreUsers}>More users</Button>
+          </div>
+        )}
       </main>
       <Toaster position="bottom-right"  />
       {/* Mobile/Tablet Filters Dialog */}

@@ -196,7 +196,15 @@ export default function Messages() {
       scrollToBottom();
     } catch (error) {
       console.error("Error sending message:", error);
-      toast.error("Failed to send message");
+      toast.error("Failed to send message", {
+        duration: 3000,
+        position: "bottom-center",
+        style: {
+          background: "#181f25",
+          color: "white",
+          border: "1px solid #232e39"
+        }
+      });
     }
   };
 
@@ -268,7 +276,14 @@ export default function Messages() {
       await axios.patch(`http://localhost:5000/sessions/${sessionId}`, { status: 'accepted' });
       await fetchSessions();
       scrollToBottom();
-      toast.success('Session accepted!');
+      toast.success('Session accepted!', {
+        duration: 3000,
+        style: {
+          background: "#181f25",
+          color: "white",
+          border: "1px solid #232e39"
+        }
+      });
     } catch (error) {
       console.error(error);
       toast.error('Failed to accept session');
@@ -280,10 +295,26 @@ export default function Messages() {
       await axios.patch(`http://localhost:5000/sessions/${sessionId}`, { status: 'declined' });
       await fetchSessions();
       scrollToBottom();
-      toast.success('Session declined.');
+      toast.success('Session declined.', {
+        duration: 3000,
+        position: "bottom-center",
+        style: {
+          background: "#181f25",
+          color: "white",
+          border: "1px solid #232e39"
+        }
+      });
     } catch (error) {
       console.error(error);
-      toast.error('Failed to decline session');
+      toast.error('Failed to decline session', {
+        duration: 3000,
+        position: "bottom-center",
+        style: {
+          background: "#181f25",
+          color: "white",
+          border: "1px solid #232e39"
+        }
+      });
     }
   };
 

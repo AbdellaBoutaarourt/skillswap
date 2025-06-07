@@ -31,7 +31,6 @@ export default function SkillMashups() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!prompt.trim()) return toast.error("Please describe your idea!");
     setMessages(prev => [
       ...prev,
       { sender: "user", content: prompt, type: "user" }
@@ -54,7 +53,15 @@ export default function SkillMashups() {
       ]);
       setPrompt("");
     } catch {
-      toast.error("Failed to get suggestions from AI.");
+      toast.error("Failed to get suggestions from AI.", {
+        duration: 3000,
+        position: "bottom-center",
+        style: {
+          background: "#181f25",
+          color: "white",
+          border: "1px solid #232e39"
+        }
+      });
     }
   }
 

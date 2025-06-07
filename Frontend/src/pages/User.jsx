@@ -106,11 +106,18 @@ export default function User() {
     try {
       await axios.post(`http://localhost:5000/requests/accept/${requestId}`);
       setRequestStatus('accepted');
-      toast.success("You can now start messaging with this user.");
+      toast.success("You can now start messaging with this user.", {
+        duration: 3000,
+        position: "bottom-center",
+        style: {
+          background: "#181f25",
+          color: "white",
+          border: "1px solid #232e39"
+        }
+      });
       window.dispatchEvent(new CustomEvent('refreshNotifications'));
     } catch (error) {
       console.error('Error accepting request:', error);
-      toast.error(error.response?.data?.message || "Failed to accept request. Please try again.");
     }
   };
 
@@ -119,11 +126,18 @@ export default function User() {
       await axios.post(`http://localhost:5000/requests/decline/${requestId}`);
       setRequestStatus('declined');
       setShowDeclinedMessage(true);
-      toast.success("You can propose a skill swap instead.");
+      toast.success("You can propose a skill swap instead.", {
+        duration: 3000,
+        position: "bottom-center",
+        style: {
+          background: "#181f25",
+          color: "white",
+          border: "1px solid #232e39"
+        }
+      });
       window.dispatchEvent(new CustomEvent('refreshNotifications'));
     } catch (error) {
       console.error('Error declining request:', error);
-      toast.error(error.response?.data?.message || "Failed to decline request. Please try again.");
     }
   };
 
@@ -131,10 +145,6 @@ export default function User() {
     const user = JSON.parse(localStorage.getItem("user"));
     const requester_id = user.id;
 
-    if (!selectedSkill) {
-      toast.error("Please select a skill to learn");
-      return;
-    }
 
     const currentUser = JSON.parse(localStorage.getItem("user"));
     const alreadyRequested = existingRequests.some(
@@ -157,9 +167,25 @@ export default function User() {
         requested_skill: selectedSkill,
       });
       setShowSwapModal(false);
-      toast.success("The user will be notified of your swap proposal.");
+      toast.success("The user will be notified of your swap proposal.", {
+        duration: 3000,
+        position: "bottom-center",
+        style: {
+          background: "#181f25",
+          color: "white",
+          border: "1px solid #232e39"
+        }
+      });
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to send swap request. Please try again.");
+      toast.error(error.response?.data?.message, {
+        duration: 3000,
+        position: "bottom-center",
+        style: {
+          background: "#181f25",
+          color: "white",
+          border: "1px solid #232e39"
+        }
+      });
     }
   };
 

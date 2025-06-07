@@ -18,6 +18,13 @@ import { toast, Toaster } from "sonner";
 import MultiSelect from "@/components/MultiSelect";
 import { Label } from "@/components/ui/label";
 import { DatePickerWithRange } from "@/components/datePickerRange";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem
+} from "@/components/ui/select";
 
 function Profile() {
   const [tab, setTab] = useState("skills");
@@ -37,6 +44,8 @@ function Profile() {
   const [success, setSuccess] = useState("");
   const [open, setOpen] = useState(false);
   const [availableSkills, setAvailableSkills] = useState([]);
+  const [countries, setCountries] = useState([]);
+  const [selectedCountry, setSelectedCountry] = useState('');
 
   useEffect(() => {
     async function fetchSkills() {
@@ -61,6 +70,13 @@ function Profile() {
     fetchSkills();
   }, []);
 
+  useEffect(() => {
+    fetch('https://countriesnow.space/api/v0.1/countries/positions')
+      .then(res => res.json())
+      .then(data => {
+        setCountries(data.data);
+      });
+  }, []);
 
   async function fetchProfile() {
     setLoading(true);
@@ -68,6 +84,7 @@ function Profile() {
       const localUser = JSON.parse(localStorage.getItem('user'));
       const { data } = await axios.get(`http://localhost:5000/users/profile/${localUser.id}`);
       setUser(data);
+      setSelectedCountry(data.location);
       setForm(f => ({
         ...f,
         username: data.username || "",
@@ -146,6 +163,11 @@ function Profile() {
     setForm({ ...form, [e.target.name]: e.target.value });
   }
 
+  const handleCountryChange = (value) => {
+    setSelectedCountry(value);
+    setForm(f => ({...f, location: value }));
+  };
+
   return (
     <div className="min-h-screen bg-[#111B23] text-white flex flex-col items-center py-12 px-2">
       <div className="w-full max-w-4xl flex flex-col md:flex-row items-center md:items-start md:space-x-8 mb-8">
@@ -188,20 +210,31 @@ function Profile() {
                 <Button variant="outline" className="border-white cursor-pointer hover:text-white bg-transparent text-white font-semibold rounded-lg px-8 py-2 h-11 text-base transition hover:bg-white/10">Edit profile</Button>
               </AlertDialogTrigger>
               <AlertDialogContent className="bg-[#181f25] text-white border border-gray-700">
-                <AlertDialogHeader>
+                  <AlertDialogHeader>
                   <AlertDialogTitle>Edit Profile</AlertDialogTitle>
                   <AlertDialogDescription className="text-gray-400">
                     Update your profile information, skills, and availability.
                   </AlertDialogDescription>
-                </AlertDialogHeader>
+                  </AlertDialogHeader>
                 <form onSubmit={handleEditSubmit} className="space-y-4">
                   <div>
                     <Label className="block text-sm mb-1">Username</Label>
                     <Input name="username" value={form.username} onChange={handleChange} className="bg-[#232b32] text-white" />
                   </div>
                   <div>
-                    <Label className="block text-sm mb-1">Location</Label>
-                    <Input name="location" value={form.location} onChange={handleChange} className="bg-[#232b32] text-white" />
+                    <Label className="block text-sm mb-1">Country</Label>
+                    <Select value={selectedCountry} onValueChange={handleCountryChange}>
+                      <SelectTrigger className="w-full bg-[#232b32] text-white">
+                        <SelectValue placeholder={user.location || "Select a country"} />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#232b32] text-white">
+                        {countries.map(c => (
+                          <SelectItem key={c.name} value={c.name}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
                     <Label className="block text-sm mb-1">Bio</Label>

@@ -17,10 +17,10 @@ import {
 
 export function DatePickerWithRange({ className, onSelect, selected }) {
   const currentDate = new Date();
+  const endDate = new Date();
+  endDate.setDate(currentDate.getDate() + 20);
 
-  currentDate.setMonth(currentDate.getMonth() - 1);
-
-  const [date, setDate] = useState(selected || { from: undefined, to: undefined });
+  const [date, setDate] = useState(selected || { from: currentDate, to: endDate });
 
   useEffect(() => {
     onSelect(date);

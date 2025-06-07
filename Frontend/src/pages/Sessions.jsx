@@ -89,10 +89,17 @@ export default function Sessions() {
       const { data } = await axios.get(`http://localhost:5000/sessions/user/${user.id}`);
       const sortedSessions = data.sort((a, b) => new Date(a.date) - new Date(b.date));
       setSessions(sortedSessions);
-      toast.success('Session accepted!');
+      toast.success('Session accepted!', {
+        duration: 3000,
+        position: "bottom-center",
+        style: {
+          background: "#181f25",
+          color: "white",
+          border: "1px solid #232e39"
+        }
+      });
     } catch (error) {
       console.error(error);
-      toast.error('Failed to accept session');
     }
   };
 
@@ -103,18 +110,35 @@ export default function Sessions() {
       const { data } = await axios.get(`http://localhost:5000/sessions/user/${user.id}`);
       const sortedSessions = data.sort((a, b) => new Date(a.date) - new Date(b.date));
       setSessions(sortedSessions);
-      toast.success('Session declined.');
+      toast.success('Session declined.', {
+        duration: 3000,
+        position: "bottom-center",
+        style: {
+          background: "#181f25",
+          color: "white",
+          border: "1px solid #232e39"
+        }
+      });
     } catch (error) {
       console.error(error);
-      toast.error('Failed to decline session');
     }
   };
 
   const canJoinSession = (session) => {
     const now = new Date();
-    const start = new Date(session.start_time);
-    const end = new Date(session.end_time);
-    return now >= new Date(start.getTime() - 10 * 60000) && now <= end;
+    const sessionDate = new Date(session.date);
+    const [startHours, startMinutes] = session.start_time.split(':').map(Number);
+    const [endHours, endMinutes] = session.end_time.split(':').map(Number);
+
+    const startTime = new Date(sessionDate);
+    startTime.setHours(startHours, startMinutes, 0, 0);
+
+    const endTime = new Date(sessionDate);
+    endTime.setHours(endHours, endMinutes, 0, 0);
+
+    const joinTime = new Date(startTime.getTime() - 10 * 60000); // 10 minutes before start
+
+    return now >= joinTime && now <= endTime;
   };
 
   const submitRating = async (sessionId) => {
@@ -135,7 +159,6 @@ export default function Sessions() {
       fetchAll();
     } catch (error) {
       console.error('Error submitting rating:', error);
-      toast.error('Failed to submit rating');
     }
   };
 
