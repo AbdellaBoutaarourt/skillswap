@@ -1,6 +1,8 @@
 import logo from '../assets/logo.png';
 import { Link } from 'react-router-dom';
 
+const isAuthenticated = Boolean(localStorage.getItem('user'));
+
 const Footer = () => (
   <footer className="bg-[#111B23] border-t border-gray-700 pt-8 pb-4 px-4 md:px-0">
     <div className=" flex flex-col md:flex-row justify-between xl:mx-50  md:mx-40 md:items-center ">
@@ -16,7 +18,11 @@ const Footer = () => (
           <Link to="/" className="text-gray-200 hover:text-blue-400 transition">Home</Link>
           <Link to="#" className="text-gray-200 hover:text-blue-400 transition">Explore</Link>
           <Link to="#" className="text-gray-200 hover:text-blue-400 transition">Skill Mashups</Link>
-          <Link to="/login" className="text-gray-200 hover:text-blue-400 transition">Sign up</Link>
+          {isAuthenticated ? (
+            <Link to="/sessions" className="text-gray-200 hover:text-blue-400 transition">Sessions</Link>
+          ) : (
+            <Link to="/login" className="text-gray-200 hover:text-blue-400 transition">Sign In</Link>
+          )}
         </nav>
       </div>
     </div>

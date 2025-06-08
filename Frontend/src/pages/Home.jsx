@@ -61,7 +61,7 @@ const Home = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="relative w-full max-w-4xl rounded-2xl overflow-hidden shadow-lg"
+          className="relative w-full max-w-6xl rounded-2xl overflow-hidden shadow-lg"
         >
           <motion.img
             initial={{ scale: 1.1 }}
@@ -76,7 +76,7 @@ const Home = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="text-2xl md:text-4xl font-bold mb-2"
+              className="text-2xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-blue-400 via-cyan-400 to-purple-400 bg-clip-text text-transparent animate-gradient"
             >
               Master a new skill
             </motion.h2>
@@ -144,7 +144,7 @@ const Home = () => {
                 key={index}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: index * 0.1 }}
+                transition={{ delay: index * 0.08, duration: 0.5, type: "spring" }}
                 className="bg-[#181f25] rounded-xl overflow-hidden shadow flex flex-col items-center p-2 h-32 animate-pulse"
               >
                 <div className="w-full h-20 bg-gray-700 rounded-md mb-2" />
@@ -153,7 +153,7 @@ const Home = () => {
               </motion.div>
             ))
           ) : (
-            skills.map((skill, index) => (
+            skills.map((skill) => (
               <Link
                 key={skill.id}
                 to={`/explore?category=${encodeURIComponent(skill.category)}`}
@@ -162,12 +162,12 @@ const Home = () => {
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  whileHover={{ scale: 1.05, y: -5 }}
+                  whileHover={{ scale: 1.07, y: -8, boxShadow: "0 8px 32px 0 rgba(0, 123, 255, 0.25)" }}
+                  transition={{ type: "spring", stiffness: 300 }}
                   className="h-full bg-[#181f25] rounded-xl overflow-hidden shadow flex flex-col items-center p-2 transition-all duration-200 hover:shadow-2xl cursor-pointer"
                 >
                   <motion.img
-                    whileHover={{ scale: 1.1 }}
+                    whileHover={{ scale: 1.15, boxShadow: "0 0 0 8px rgba(25, 119, 199, 0.15)" }}
                     src={skill.image_url || "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&w=400&q=80"}
                     alt={skill.name}
                     className="w-full h-20 object-cover rounded-md mb-2 transition-transform duration-200"
@@ -222,13 +222,13 @@ const Home = () => {
               key={user.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
+              transition={{ delay: index * 0.08, duration: 0.5, type: "spring" }}
               whileHover={{ scale: 1.05, y: -5 }}
               className="bg-[#181f25] rounded-xl shadow flex flex-col justify-between items-center p-4 transition-all duration-200 hover:shadow-2xl cursor-pointer"
             >
               <Link to={`/profile/${user.id}`} className="flex flex-col items-center w-full">
                 <motion.img
-                  whileHover={{ scale: 1.1 }}
+                  whileHover={{ scale: 1.15, boxShadow: "0 0 0 8px rgba(25, 119, 199, 0.15)" }}
                   src={user.avatar || defaultAvatar}
                   alt={user.name}
                   className="w-16 h-16 rounded-full mb-2 border-2 border-button object-cover transition-transform duration-200"
@@ -274,8 +274,9 @@ const Home = () => {
         </motion.h3>
         <Link to="/explore">
           <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.08 }}
+            animate={{ boxShadow: ["0 0 0 0 #1977c7", "0 0 0 8px #1977c733", "0 0 0 0 #1977c7"] }}
+            transition={{ repeat: Infinity, duration: 2 }}
             className="bg-button hover:bg-[#1977c7] text-white px-6 py-2 rounded-lg font-semibold text-lg cursor-pointer transition-transform duration-150 hover:shadow-lg"
           >
             Start learning

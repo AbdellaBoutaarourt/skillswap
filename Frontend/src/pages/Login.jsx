@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import logo from "../assets/logo.png";
-import loginImg from "../assets/Login.png";
+import loginImg from "../assets/design.png";
 import connectImg from "../assets/connect.jpg";
 import progressImg from "../assets/matshup.jpg";
 
@@ -295,7 +295,7 @@ const Login = () => {
                       transition={{ duration: 0.5 }}
                   src={slide.image}
                   alt={slide.title}
-                      className="w-full h-80 object-contain mb-6 rounded-lg shadow-lg"
+                      className="w-full h-80 object-contain mb-6 "
                 />
                     <motion.h3
                       initial={{ opacity: 0, y: 20 }}
