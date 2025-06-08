@@ -8,6 +8,8 @@ import dayjs from "dayjs";
 import { Badge } from "../components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "../components/ui/dialog";
 import { toast } from "sonner";
+import { FloatingDock } from "../components/ui/floating-dock";
+import { IconMicrophone, IconMicrophoneOff, IconVideo, IconVideoOff, IconScreenShare, IconScreenShareOff, IconLogout, IconMessage, IconMaximize, IconMinimize } from "@tabler/icons-react";
 
 export default function JoinSession() {
   const { sessionId } = useParams();
@@ -24,6 +26,7 @@ export default function JoinSession() {
   const peerRef = useRef(null);
   const navigate = useNavigate();
   const offerReceived = useRef(false);
+  const [hasUnreadChat, setHasUnreadChat] = useState(false);
   const answerReceived = useRef(false);
   const peerDisconnected = useRef(false);
   const user = JSON.parse(localStorage.getItem("user"));
@@ -31,7 +34,6 @@ export default function JoinSession() {
   const [messages, setMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
   const [showChat, setShowChat] = useState(false);
-  const [hasUnreadChat, setHasUnreadChat] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
@@ -360,6 +362,7 @@ export default function JoinSession() {
     if (showChat) setHasUnreadChat(false);
   }, [showChat]);
 
+
   const sendMessage = (e) => {
     e.preventDefault();
     const msg = {
@@ -396,6 +399,59 @@ export default function JoinSession() {
     }, 10000);
     return () => clearInterval(interval);
   }, [sessionInfo]);
+
+  // FloatingDock items
+  const dockItems = [
+    {
+      title: isMuted ? "Unmute" : "Mute",
+      icon: isMuted ? <IconMicrophoneOff className="w-6 h-6" /> : <IconMicrophone className="w-6 h-6" />,
+      onClick: () => { toggleMute(); console.log('Dock: mute'); },
+
+    },
+    {
+      title: isCameraOff ? "Enable Camera" : "Disable Camera",
+      icon: isCameraOff ? <IconVideoOff className="w-6 h-6" /> : <IconVideo className="w-6 h-6" />,
+      onClick: toggleCamera,
+    },
+    {
+      title: isScreenSharing ? "Stop Screen Share" : "Share Screen",
+      icon: isScreenSharing ? <IconScreenShareOff className="w-6 h-6" /> : <IconScreenShare className="w-6 h-6" />,
+      onClick: isScreenSharing ? stopScreenShare : startScreenShare,
+    },
+    {
+      title: showChat ? "Close Chat" : "Open Chat",
+      icon: (
+        <span className="relative">
+          <IconMessage className="w-6 h-6" />
+          {hasUnreadChat && (
+              <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-[#232e39] animate-ping"></span>
+            )}
+        </span>
+      ),
+      onClick: () => {
+        setShowChat(!showChat);
+        setHasUnreadChat(false);
+        console.log('Dock: chat');
+      },
+    },
+    {
+      title: isFullScreen ? "Exit Fullscreen" : "Enter Fullscreen",
+      icon: isFullScreen ? <IconMinimize className="w-6 h-6" /> : <IconMaximize className="w-6 h-6" />,
+      onClick: () => {
+        const mainContainer = document.querySelector('.main');
+        if (!document.fullscreenElement) {
+          mainContainer.requestFullscreen();
+        } else {
+          document.exitFullscreen();
+        }
+      },
+    },
+    {
+      title: "Leave Session",
+      icon: <IconLogout className="w-6 h-6" />,
+      onClick: leaveSession,
+    },
+  ];
 
   return (
     <div className={`main flex flex-col md:flex-row min-h-screen bg-[#111B23] text-white${isFullScreen ? ' fullscreen-active' : ''}`}>
@@ -589,105 +645,25 @@ export default function JoinSession() {
           )}
         </div>
 
-      <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2  bg-[#232e39] rounded-lg shadow-xl flex h-[54px] gap-4 px-6 py-2 items-center">
-        <Button
-          onClick={leaveSession}
-          className="w-10 h-10 p-0 rounded-full text-2xl flex items-center justify-center shadow-lg bg-red-500 hover:bg-red-600 text-white transition active:scale-95"
-          title="Leave session"
-        >
-          <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </Button>
-        <Button
-          onClick={toggleMute}
-          className={`w-10 h-10 p-0 rounded-full text-2xl flex items-center justify-center shadow-lg transition active:scale-95 ${isMuted ? 'bg-red-500 hover:bg-red-600' : 'bg-button hover:bg-blue-600'}`}
-          title={isMuted ? "Unmute" : "Mute"}
-        >
-          {isMuted ? (
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
-            </svg>
-          ) : (
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-            </svg>
-          )}
-        </Button>
-        <Button
-          onClick={toggleCamera}
-          className={`w-10 h-10 p-0 rounded-full text-2xl flex items-center justify-center shadow-lg transition active:scale-95 ${isCameraOff ? 'bg-red-500 hover:bg-red-600' : 'bg-button hover:bg-blue-600'}`}
-          title={isCameraOff ? "Enable camera" : "Disable camera"}
-        >
-          {isCameraOff ? (
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              <line x1="4" y1="4" x2="20" y2="20" stroke="red" strokeWidth="2" />
-            </svg>
-          ) : (
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <rect x="3" y="7" width="15" height="10" rx="2" ry="2" strokeWidth="2" />
-              <path d="M21 7v10l-4-4" strokeWidth="2" />
-            </svg>
-          )}
-        </Button>
-        <Button
-          onClick={isScreenSharing ? stopScreenShare : startScreenShare}
-          className={`w-10 h-10 p-0 rounded-full text-2xl flex items-center justify-center shadow-lg transition active:scale-95 ${isScreenSharing ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-button hover:bg-blue-600'}`}
-          title={isScreenSharing ? "Stop screen sharing" : "Share screen"}
-        >
-          {isScreenSharing ? (
-            <svg className="w-8 h-8" fill="red" viewBox="0 0 24 24">
-              <rect x="5" y="5" width="14" height="14" rx="2" />
-            </svg>
-          ) : (
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <rect x="3" y="4" width="18" height="14" rx="2" ry="2" strokeWidth="2" stroke="currentColor" fill="none" />
-              <path d="M8 21h8" strokeWidth="2" stroke="currentColor" fill="none" />
-            </svg>
-          )}
-        </Button>
-        <Button
-          onClick={() => {
-            const mainContainer = document.querySelector('.main');
-            if (!document.fullscreenElement) {
-              mainContainer.requestFullscreen();
-            } else {
-              document.exitFullscreen();
-            }
-          }}
-          className="w-10 h-10 p-0 rounded-full text-2xl flex items-center justify-center shadow-lg bg-button hover:bg-blue-600 text-white transition active:scale-95"
-          title={isFullScreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-        >
-          {isFullScreen ? (
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 9V4.5M9 9H4.5M15 9h4.5M15 9V4.5M9 15v4.5M9 15H4.5M15 15h4.5M15 15v4.5" />
-            </svg>
-          ) : (
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5" />
-            </svg>
-          )}
-        </Button>
-        <div className="relative">
-          <Button
-            onClick={() => setShowChat(true)}
-            className="w-10 h-10 p-0 rounded-full text-2xl flex items-center justify-center shadow-lg bg-button hover:bg-blue-700 text-white transition active:scale-95"
-            title="Open chat"
+      <FloatingDock
+        items={dockItems}
+        desktopClassName="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#232e39] dark:bg-[#232e39] shadow-xl"
+        mobileClassName="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#232e39] dark:bg-[#232e39] shadow-xl"
+        renderItem={(item) => (
+          <button
+            key={item.title}
+            onClick={item.onClick}
+            title={item.title}
+            type="button"
+            className="flex items-center justify-center w-10 h-10 rounded-full dark:bg-neutral-800 hover:bg-blue-600 transition cursor-pointer"
           >
-            <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            {hasUnreadChat && (
-              <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-[#232e39] animate-ping"></span>
-            )}
-          </Button>
-        </div>
-      </div>
+            {item.icon}
+          </button>
+        )}
+      />
 </div>
       </div>
-      {/* Chat sidebar */}
+      {/* Chat */}
 
       {showChat && (
         <div className="fixed bottom-20 right-6 z-50 w-[90vw] max-w-xs md:max-w-md bg-[#181f25] border border-[#232e39] rounded-lg shadow-2xl flex flex-col h-[60vh]">
@@ -793,7 +769,6 @@ export default function JoinSession() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
     </div>
   );
 }

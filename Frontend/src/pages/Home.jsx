@@ -175,7 +175,7 @@ const Home = () => {
                   <div className="text-center h-full flex flex-col justify-between">
                     <div className="font-bold text-base md:text-lg">{skill.name}</div>
                     <div className="text-xs md:text-sm text-gray-300">{skill.category}</div>
-                  </div>
+              </div>
                 </motion.div>
               </Link>
             ))
