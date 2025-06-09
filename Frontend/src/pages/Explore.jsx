@@ -25,6 +25,8 @@ export default function Explore() {
   const [existingRequests, setExistingRequests] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
   const [displayedUsers, setDisplayedUsers] = useState(12);
+  const [selectedCountry, setSelectedCountry] = useState("");
+  const [countries, setCountries] = useState([]);
 
   const fetchCategories = async () => {
     try {
@@ -39,8 +41,11 @@ export default function Explore() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get('http://localhost:5000/users/explore');
-      setAllUsers(data);
+      const res = await axios.get('http://localhost:5000/users/explore');
+      setAllUsers(res.data);
+      //extract unique countries and sort them
+      const uniqueCountries = Array.from(new Set(res.data.map(u => u.location).filter(Boolean))).sort();
+      setCountries(uniqueCountries);
     } catch (err) {
       console.error('Error fetching users:', err);
     } finally {
@@ -61,8 +66,9 @@ export default function Explore() {
     }
     // Get category from URL
     const category = searchParams.get('category');
+    if (category && categories.includes(category)) {
       setSelectedCategories([category]);
-
+    }
   }, [searchParams, categories]);
 
   useEffect(() => {
@@ -109,9 +115,13 @@ export default function Explore() {
       });
     }
 
+    if (selectedCountry && selectedCountry !== 'all') {
+      filteredUsers = filteredUsers.filter(user => user.location === selectedCountry);
+    }
+
     setUsers(filteredUsers);
     setDisplayedUsers(12);
-  }, [allUsers, selectedCategories, dateRange, searchQuery, skillsData]);
+  }, [allUsers, selectedCategories, dateRange, searchQuery, skillsData, selectedCountry]);
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
@@ -212,6 +222,22 @@ export default function Explore() {
               </label>
             ))}
           </div>
+        </div>
+        <div className="mb-6">
+          <span className="block text-sm mb-2">Country</span>
+          <Select value={selectedCountry} onValueChange={setSelectedCountry}>
+            <SelectTrigger className="w-full bg-[#181f25] border-gray-700">
+              <SelectValue placeholder="All countries" />
+            </SelectTrigger>
+            <SelectContent className="bg-[#181f25] border-gray-700 max-h-60 overflow-y-auto">
+              <SelectItem value="all" className="text-white hover:bg-[#2194F2]">All</SelectItem>
+              {countries.map(country => (
+                <SelectItem key={country} value={country} className="text-white hover:bg-[#2194F2]">
+                  {country}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </aside>
       <main className="flex-1 p-6 md:p-8 md:px-4">
@@ -332,6 +358,22 @@ export default function Explore() {
                               ))}
                             </SelectContent>
                           </Select>
+                          <div className="mb-6">
+                            <span className="block text-sm mb-2">Country</span>
+                            <Select value={selectedCountry} onValueChange={setSelectedCountry}>
+                              <SelectTrigger className="w-full bg-[#181f25] border-gray-700">
+                                <SelectValue placeholder="All countries" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-[#181f25] border-gray-700 max-h-60 overflow-y-auto">
+                                <SelectItem value="all" className="text-white hover:bg-[#2194F2]">All</SelectItem>
+                                {countries.map(country => (
+                                  <SelectItem key={country} value={country} className="text-white hover:bg-[#2194F2]">
+                                    {country}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
                           <DialogFooter className="mt-4">
                             <Button
                               disabled={!selectedSkill || alreadyRequested}
@@ -392,6 +434,22 @@ export default function Explore() {
                 </label>
               ))}
             </div>
+          </div>
+          <div className="mb-6">
+            <span className="block text-sm mb-2">Country</span>
+            <Select value={selectedCountry} onValueChange={setSelectedCountry}>
+              <SelectTrigger className="w-full bg-[#181f25] border-gray-700">
+                <SelectValue placeholder="All countries" />
+              </SelectTrigger>
+              <SelectContent className="bg-[#181f25] border-gray-700 max-h-60 overflow-y-auto">
+                <SelectItem value="all" className="text-white hover:bg-[#2194F2]">All</SelectItem>
+                {countries.map(country => (
+                  <SelectItem key={country} value={country} className="text-white hover:bg-[#2194F2]">
+                    {country}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </DialogContent>
       </Dialog>
