@@ -97,19 +97,29 @@ export default function SkillMashups() {
                             </div>
                             <div className="text-xs text-gray-300">{u.skills?.join(", ")}</div>
                           </div>
-                          <a
-                            href={`/profile/${u.id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <Button
+                            size="sm"
+                            className="mr-2 hover:bg-blue-700 transition"
+                            type="button"
+                            onClick={() => {
+                              const currentUser = JSON.parse(localStorage.getItem("user"));
+                              if (!currentUser || !currentUser.id) {
+                                toast.error("Please login to combine skills", {
+                                  duration: 3000,
+                                  position: "bottom-center",
+                                  style: {
+                                    background: "#181f25",
+                                    color: "white",
+                                    border: "1px solid #232e39"
+                                  }
+                                });
+                                return;
+                              }
+                              window.location.href = `/profile/${u.id}?combine=true`;
+                            }}
                           >
-                            <Button
-                              size="sm"
-                              className="mr-2 hover:bg-blue-700 transition"
-                              type="button"
-                            >
-                              Profile
-                            </Button>
-                          </a>
+                            Combine Skills
+                          </Button>
                         </div>
                       ))}
                     </div>

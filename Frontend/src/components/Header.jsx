@@ -19,17 +19,30 @@ const Header = () => {
 
     const fetchNotifications = async () => {
       try {
-        const { data } = await axios.get(`http://localhost:5000/skills/skill-requests/user/${user.id}`);
-        const pending = data.filter(req => req.receiver_id === user.id && req.status === 'pending');
+        //Get swap requests
+        const { data: swapRequests } = await axios.get(`http://localhost:5000/skills/skill-requests/user/${user.id}`);
+        const pendingSwaps = swapRequests.filter(req => req.receiver_id === user.id && req.status === 'pending');
 
-        const enriched = await Promise.all(
-          pending.map(async (req) => {
+        // Get combine requests
+        const { data: combineRequests } = await axios.get(`http://localhost:5000/skills/combine-requests/user/${user.id}`);
+        const pendingCombines = combineRequests.filter(req => req.receiver_id === user.id && req.status === 'pending');
+
+        // Enrich the data with the requester's info
+        const enrichedSwaps = await Promise.all(
+          pendingSwaps.map(async (req) => {
             const { data: requester } = await axios.get(`http://localhost:5000/users/profile/${req.requester_id}`);
-            return { ...req, requester };
+            return { ...req, requester, type: 'swap' };
           })
         );
 
-        setNotifications(enriched);
+        const enrichedCombines = await Promise.all(
+          pendingCombines.map(async (req) => {
+            const { data: requester } = await axios.get(`http://localhost:5000/users/profile/${req.requester_id}`);
+            return { ...req, requester, type: 'combine' };
+          })
+        );
+
+        setNotifications([...enrichedSwaps, ...enrichedCombines]);
 
       } catch (error) {
         console.error("Failed to fetch notifications:", error);
@@ -90,13 +103,20 @@ const Header = () => {
                     ? `${notif.requester.first_name || ''} ${notif.requester.last_name || ''}`.trim()
                     : notif.requester.username}
                 </span>
-                <span className="text-gray-400 text-sm truncate">
-                  {notif.requester.location && `· ${notif.requester.location}`}
-                </span>
+
               </div>
               <div className="mt-1 text-sm w-full">
-                <span className="text-blue-400 font-semibold">Swap request:</span>
-                <span className="ml-2 text-white">{notif.requested_skill}</span>
+                {notif.type === 'swap' ? (
+                  <>
+                    <span className="text-blue-400 font-semibold">Swap request:</span>
+                    <span className="ml-2 text-white">{notif.requested_skill}</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-purple-400 font-semibold">Skill combination request:</span>
+                    <span className="ml-2 text-white">{notif.prompt}</span>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -106,7 +126,7 @@ const Header = () => {
               <button
                 className="flex cursor-pointer gap-2 bg-button hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg font-semibold text-sm transition"
                 onClick={() => {
-                  navigate(`/profile/${notif.requester.id}?requestId=${notif.id}`);
+                  navigate(`/profile/${notif.requester.id}?requestId=${notif.id}${notif.type === 'combine' ? '&combine=true' : ''}`);
                   setNotifOpen(false);
                 }}
               >

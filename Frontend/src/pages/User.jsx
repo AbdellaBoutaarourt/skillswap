@@ -7,6 +7,7 @@ import { Button } from "../components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { toast, Toaster } from "sonner"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function User() {
   const { id } = useParams();
@@ -25,18 +26,43 @@ export default function User() {
   const [hasAcceptedRequest, setHasAcceptedRequest] = useState(false);
   const [existingRequests, setExistingRequests] = useState([]);
   const currentUser = JSON.parse(localStorage.getItem("user"));
+  const [showCombineModal, setShowCombineModal] = useState(false);
+  const [combinePrompt, setCombinePrompt] = useState("");
+  const [showRequestModal, setShowRequestModal] = useState(false);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const requestIdFromUrl = searchParams.get('requestId');
+    const combineFromUrl = searchParams.get('combine');
+
     if (requestIdFromUrl) {
       setRequestId(requestIdFromUrl);
       setRequestStatus('pending');
       setShowDeclinedMessage(false);
+
+      if (combineFromUrl === 'true') {
+        axios.get(`http://localhost:5000/skills/combine-request/${requestIdFromUrl}`)
+          .then(response => {
+            setCombinePrompt(response.data.prompt);
+            setShowRequestModal(true);
+          })
+          .catch(error => {
+            console.error("Failed to fetch combine request:", error);
+            toast.error("Failed to load request details", {
+              duration: 3000,
+              position: "bottom-center",
+              style: {
+                background: "#181f25",
+                color: "white",
+                border: "1px solid #232e39"
+              }
+            });
+          });
+      } else {
+        setShowRequestModal(true);
+      }
     }
   }, [location.search]);
-
-
 
   useEffect(() => {
     const fetchRequests = async () => {
@@ -189,6 +215,37 @@ export default function User() {
     }
   };
 
+  const handleRequestSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await axios.post('http://localhost:5000/skills/skill-requests', {
+        requester_id: currentUser.id,
+        receiver_id: id,
+        requested_skill: requestedSkill,
+      });
+      setShowRequestModal(false);
+      toast.success("Request sent successfully!", {
+        duration: 3000,
+        position: "bottom-center",
+        style: {
+          background: "#181f25",
+          color: "white",
+          border: "1px solid #232e39"
+        }
+      });
+    } catch (error) {
+      toast.error("Failed to send request", {
+        duration: 3000,
+        position: "bottom-center",
+        style: {
+          background: "#181f25",
+          color: "white",
+          border: "1px solid #232e39"
+        }
+      });
+    }
+  };
+
   if (loading) return (
     <div className="min-h-screen text-center py-8">
       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto"></div>
@@ -260,15 +317,17 @@ export default function User() {
                   You declined the request. Would you like to learn a new skill instead?
               </div>
               )}
-              <Button
-                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-8 rounded-lg transition flex items-center gap-2 shadow"
-                onClick={() => setShowSwapModal(true)}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                </svg>
-                Learn from this SkillMate
+              <div className="flex gap-4">
+                <Button
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-8 rounded-lg transition flex items-center gap-2 shadow"
+                  onClick={() => setShowSwapModal(true)}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                  </svg>
+                  Learn from this SkillMate
                 </Button>
+              </div>
             </div>
           )}
           {(requestStatus === 'accepted' || (hasAcceptedRequest && requestStatus !== 'pending')) && (
@@ -509,6 +568,174 @@ export default function User() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={showCombineModal} onOpenChange={setShowCombineModal}>
+        <DialogContent className="bg-[#181f25] text-white border border-gray-700">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Request Skill Combination</DialogTitle>
+          </DialogHeader>
+          <div className="mt-4">
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              try {
+                const currentUser = JSON.parse(localStorage.getItem("user"));
+                await axios.post(`http://localhost:5000/skills/combine-request`, {
+                  requester_id: currentUser.id,
+                  receiver_id: id,
+                  prompt: combinePrompt,
+                });
+                setShowCombineModal(false);
+                toast.success("Combination request sent successfully!", {
+                  duration: 3000,
+                  position: "bottom-center",
+                  style: {
+                    background: "#181f25",
+                    color: "white",
+                    border: "1px solid #232e39"
+                  }
+                });
+              } catch (error) {
+                toast.error("Failed to send combination request", {
+                  duration: 3000,
+                  position: "bottom-center",
+                  style: {
+                    background: "#181f25",
+                    color: "white",
+                    border: "1px solid #232e39"
+                  }
+                });
+              }
+            }}>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2">Describe how you want to combine skills</label>
+                <Textarea
+                  value={combinePrompt}
+                  onChange={(e) => setCombinePrompt(e.target.value)}
+                  placeholder="Example: I want to combine your programming skills with my design skills to create a web application..."
+                  className="bg-[#232e39] text-white border-gray-700"
+                  rows={4}
+                  required
+                />
+              </div>
+              <div className="flex justify-end gap-4 mt-6">
+                <Button variant="outline" className="bg-transparent text-white border border-white cursor-pointer hover:bg-white/10 hover:text-white" onClick={() => setShowCombineModal(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" className="bg-purple-600 hover:bg-purple-700">
+                  Send Request
+                </Button>
+              </div>
+            </form>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {showRequestModal && (
+        <Dialog open={showRequestModal} onOpenChange={setShowRequestModal}>
+          <DialogContent className="bg-[#181f25] text-white border border-gray-700">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold">
+                {requestId ? (location.search.includes('combine=true') ? 'Skill Combination Request' : 'Skill Swap Request') : 'Request Skill Swap'}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="mt-4">
+              {requestId ? (
+                <div className="space-y-4">
+                  {location.search.includes('combine=true') ? (
+                    <div className="bg-[#232e39] p-4 rounded-lg">
+                      <p className="text-gray-300 mb-2">Combination request:</p>
+                      <p className="text-white">{combinePrompt}</p>
+                    </div>
+                  ) : (
+                    <div className="bg-[#232e39] p-4 rounded-lg">
+                      <p className="text-gray-300 mb-2">Requested skill:</p>
+                      <p className="text-white">{requestedSkill}</p>
+                    </div>
+                  )}
+                  <div className="flex justify-end gap-4 mt-6">
+                    <Button
+                      variant="outline"
+                      className="bg-transparent text-white border border-white cursor-pointer hover:bg-white/10 hover:text-white"
+                      onClick={() => {
+                        setShowRequestModal(false);
+                        setShowDeclinedMessage(true);
+                        axios.patch(`http://localhost:5000/skills/${location.search.includes('combine=true') ? 'combine-requests' : 'skill-requests'}/${requestId}`, {
+                          status: 'declined'
+                        })
+                        .then(() => {
+                          toast.success("Request declined", {
+                            duration: 3000,
+                            position: "bottom-center",
+                            style: {
+                              background: "#181f25",
+                              color: "white",
+                              border: "1px solid #232e39"
+                            }
+                          });
+                        });
+                      }}
+                    >
+                      Decline
+                    </Button>
+                    <Button
+                      className="bg-button hover:bg-blue-700"
+                      onClick={() => {
+                        setShowRequestModal(false);
+                        axios.patch(`http://localhost:5000/skills/${location.search.includes('combine=true') ? 'combine-requests' : 'skill-requests'}/${requestId}`, {
+                          status: 'accepted'
+                        })
+                        .then(() => {
+                          toast.success("Combination request accepted", {
+                            duration: 3000,
+                            position: "bottom-center",
+                            style: {
+                              background: "#181f25",
+                              color: "white",
+                              border: "1px solid #232e39"
+                            }
+                          });
+                        })
+                      }}
+                    >
+                      Accept
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <form onSubmit={handleRequestSubmit}>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium mb-2">Select a skill to request</label>
+                    <Select value={requestedSkill} onValueChange={setRequestedSkill}>
+                      <SelectTrigger className="bg-[#232e39] text-white border-gray-700">
+                        <SelectValue placeholder="Select a skill" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#232e39] text-white border-gray-700">
+                        {user.skills.map((skill) => (
+                          <SelectItem key={skill} value={skill} className="hover:bg-[#181f25]">
+                            {skill}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex justify-end gap-4 mt-6">
+                    <Button
+                      variant="outline"
+                      className="bg-transparent text-white border border-white cursor-pointer hover:bg-white/10 hover:text-white"
+                      onClick={() => setShowRequestModal(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="submit" className="bg-button hover:bg-blue-700">
+                      Send Request
+                    </Button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
       <Toaster position="bottom-right"  />
     </div>
   );
