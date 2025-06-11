@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/
 import { toast, Toaster } from "sonner"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { MdSwapHoriz, MdAdd, MdMessage, MdStar, MdGroups, MdSchool, MdAccessTime } from 'react-icons/md';
 
 export default function User() {
   const { id } = useParams();
@@ -26,9 +27,16 @@ export default function User() {
   const [hasAcceptedRequest, setHasAcceptedRequest] = useState(false);
   const [existingRequests, setExistingRequests] = useState([]);
   const currentUser = JSON.parse(localStorage.getItem("user"));
+  const [combineRequest, setCombineRequest] = useState(null);
   const [showCombineModal, setShowCombineModal] = useState(false);
-  const [combinePrompt, setCombinePrompt] = useState("");
-  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [combineMessage, setCombineMessage] = useState("");
+  const [hasAcceptedCombineRequest, setHasAcceptedCombineRequest] = useState(false);
+
+  useEffect(() => {
+    if (id && currentUser && id === currentUser.id) {
+      navigate("/profile", { replace: true });
+    }
+  }, [id, currentUser, navigate]);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
@@ -43,8 +51,9 @@ export default function User() {
       if (combineFromUrl === 'true') {
         axios.get(`http://localhost:5000/skills/combine-request/${requestIdFromUrl}`)
           .then(response => {
-            setCombinePrompt(response.data.prompt);
-            setShowRequestModal(true);
+            if (response.data.status === 'pending') {
+              setCombineRequest(response.data);
+            }
           })
           .catch(error => {
             console.error("Failed to fetch combine request:", error);
@@ -58,8 +67,6 @@ export default function User() {
               }
             });
           });
-      } else {
-        setShowRequestModal(true);
       }
     }
   }, [location.search]);
@@ -127,12 +134,39 @@ export default function User() {
       .finally(() => setLoading(false));
   }, [id]);
 
+  useEffect(() => {
+    // Check if the combine request has been accepted
+    const fetchCombineRequests = async () => {
+      try {
+        const response = await axios.get(`http://localhost:5000/skills/combine-requests/user/${id}`);
+        const combineRequests = response.data;
+        const currentUser = JSON.parse(localStorage.getItem('user'));
+        const acceptedCombine = combineRequests.find(req =>
+          (req.requester_id === currentUser.id || req.receiver_id === currentUser.id) &&
+          req.status === 'accepted'
+        );
+        setHasAcceptedCombineRequest(!!acceptedCombine);
+      } catch {
+        console.log("No combine requests found");
+        setHasAcceptedCombineRequest(false);
+      }
+    };
+    fetchCombineRequests();
+  }, [id, location.search]);
 
   const handleAccept = async () => {
     try {
-      await axios.post(`http://localhost:5000/requests/accept/${requestId}`);
-      setRequestStatus('accepted');
-      toast.success("You can now start messaging with this user.", {
+      const endpoint = location.search.includes('combine=true')
+        ? `http://localhost:5000/skills/combine-requests/${requestId}`
+        : `http://localhost:5000/skills/skill-requests/${requestId}`;
+
+      await axios.patch(endpoint, { status: 'accepted' });
+      if (location.search.includes('combine=true')) {
+        setCombineRequest(null);
+      } else {
+        setRequestStatus(null);
+      }
+      toast.success("Request accepted successfully!", {
         duration: 3000,
         position: "bottom-center",
         style: {
@@ -144,15 +178,32 @@ export default function User() {
       window.dispatchEvent(new CustomEvent('refreshNotifications'));
     } catch (error) {
       console.error('Error accepting request:', error);
+      toast.error("Failed to accept request", {
+        duration: 3000,
+        position: "bottom-center",
+        style: {
+          background: "#181f25",
+          color: "white",
+          border: "1px solid #232e39"
+        }
+      });
     }
   };
 
   const handleDecline = async () => {
     try {
-      await axios.post(`http://localhost:5000/requests/decline/${requestId}`);
-      setRequestStatus('declined');
+      const endpoint = location.search.includes('combine=true')
+        ? `http://localhost:5000/skills/combine-requests/${requestId}`
+        : `http://localhost:5000/skills/skill-requests/${requestId}`;
+
+      await axios.patch(endpoint, { status: 'declined' });
+      if (location.search.includes('combine=true')) {
+        setCombineRequest(null);
+      } else {
+        setRequestStatus(null);
+      }
       setShowDeclinedMessage(true);
-      toast.success("You can propose a skill swap instead.", {
+      toast.success("Request declined", {
         duration: 3000,
         position: "bottom-center",
         style: {
@@ -170,7 +221,6 @@ export default function User() {
   const handleSwapSkill = async () => {
     const user = JSON.parse(localStorage.getItem("user"));
     const requester_id = user.id;
-
 
     const currentUser = JSON.parse(localStorage.getItem("user"));
     const alreadyRequested = existingRequests.some(
@@ -215,16 +265,21 @@ export default function User() {
     }
   };
 
-  const handleRequestSubmit = async (e) => {
+  const handleCombineSkill = () => {
+    setShowCombineModal(true);
+  };
+
+  const handleSendCombineRequest = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:5000/skills/skill-requests', {
+      await axios.post(`http://localhost:5000/skills/combine-request`, {
         requester_id: currentUser.id,
         receiver_id: id,
-        requested_skill: requestedSkill,
+        prompt: combineMessage
       });
-      setShowRequestModal(false);
-      toast.success("Request sent successfully!", {
+      setShowCombineModal(false);
+      setCombineMessage("");
+      toast.success("Combination request sent successfully!", {
         duration: 3000,
         position: "bottom-center",
         style: {
@@ -233,8 +288,8 @@ export default function User() {
           border: "1px solid #232e39"
         }
       });
-    } catch (error) {
-      toast.error("Failed to send request", {
+    } catch {
+      toast.error("Failed to send combination request", {
         duration: 3000,
         position: "bottom-center",
         style: {
@@ -261,7 +316,7 @@ export default function User() {
           alt="avatar"
           className="w-36 h-36 rounded-full border-4 border-blue-500 object-cover mb-4 md:mb-0 shadow-lg"
         />
-        <div className="flex-1 flex flex-col md:flex-row md:items-center md:justify-between w-full">
+        <div className="flex-1 flex flex-col md:flex-row  md:justify-between w-full">
           <div className="text-center md:text-left mb-4 md:mb-0">
             <div className="font-bold text-2xl md:text-2xl text-white">
               {user.first_name} {user.last_name}
@@ -273,7 +328,7 @@ export default function User() {
             <div className="flex items-center gap-2 mt-2 justify-center md:justify-start">
               <div className="flex">
                 {[1,2,3,4,5].map(star => (
-                  <span key={star} className={star <= Math.round(user.rating || 0) ? "text-yellow-400 text-lg" : "text-gray-500 text-lg"}>★</span>
+                  <MdStar key={star} className={star <= Math.round(user.rating || 0) ? "text-yellow-400 text-lg" : "text-gray-500 text-lg"} />
                 ))}
               </div>
               <span className="text-sm text-gray-300 ml-1">{user.rating ? user.rating.toFixed(1) : 0}/5</span>
@@ -289,12 +344,12 @@ export default function User() {
               </div>
             </div>
           </div>
-          {requestStatus === 'pending' && requestId && existingRequests.find(
-            req => req.id === requestId && req.receiver_id === currentUser.id
-          ) && (
-            <div className="bg-[#181f25] text-white rounded-lg shadow-lg px-8 py-6 flex flex-col items-center max-w-xl w-full md:w-[420px] ml-0 border border-white/20">
+          {(combineRequest && combineRequest.status === 'pending' && combineRequest.receiver_id === currentUser.id && location.search.includes('combine=true')) ? (
+            <div className="bg-[#181f25] text-white rounded-lg shadow-lg px-8 py-6 flex flex-col items-center max-w-xl w-full md:w-[420px] ml-0 border border-white/20 mb-6">
               <div className="mb-6 text-center text-base font-medium">
-                <span className="text-white font-bold">{ user.username}</span> wants to learn: <span className="font-bold text-blue-400">{requestedSkill}</span>
+                <span className="text-white font-bold">{user.username}</span> wants to combine skills:
+                <br />
+                <span className="text-purple-400 font-bold mt-2 block">{combineRequest.prompt}</span>
                 <br />
                 <span className="text-gray-400 text-sm">
                   Click below to accept or decline the request.
@@ -309,38 +364,59 @@ export default function User() {
                 </Button>
               </div>
             </div>
-          )}
-          {!hasAcceptedRequest && (
-            <div className=" text-black rounded-2xl  p-8 flex flex-col items-center max-w-xl w-full md:w-[420px] ml-0 md:ml-8">
-          {showDeclinedMessage && (
-              <div className="mb-6 text-center text-base font-medium text-white">
-                  You declined the request. Would you like to learn a new skill instead?
+          ) : (requestStatus === 'pending' && requestId && existingRequests.find(
+            req => req.id === requestId && req.receiver_id === currentUser.id
+          ) && !location.search.includes('combine=true')) ? (
+            <div className="bg-[#181f25] text-white rounded-lg shadow-lg px-8 py-6 flex flex-col items-center max-w-xl w-full md:w-[420px] ml-0 border border-white/20">
+              <div className="mb-6 text-center text-base font-medium">
+                <span className="text-white font-bold">{user.username}</span> wants to learn: <span className="font-bold text-blue-400">{requestedSkill}</span>
+                <br />
+                <span className="text-gray-400 text-sm">
+                  Click below to accept or decline the request.
+                </span>
               </div>
+              <div className="flex gap-4 w-full justify-center">
+                <Button className="w-1/2 bg-button hover:bg-blue-700 text-white font-bold py-2 px-8 rounded-lg transition" onClick={handleAccept}>
+                  Accept
+                </Button>
+                <Button variant="outline" className="w-1/2 border-white text-white font-bold py-2 px-8 rounded-lg cursor-pointer transition bg-[#181f25] hover:bg-[#232e39] hover:text-white shadow" onClick={handleDecline}>
+                  Decline
+                </Button>
+              </div>
+            </div>
+          ) : (requestStatus === 'accepted' || hasAcceptedRequest || hasAcceptedCombineRequest) ? (
+            <div className=" text-black rounded-2xl justify-center p-8 flex flex-col items-center max-w-xl w-full md:w-[420px] ml-0 md:ml-8">
+              <Button
+                className="bg-button hover:bg-blue-700 text-white font-bold py-2 px-8 rounded-lg transition flex items-center gap-2"
+                onClick={() => navigate(`/messages/${user.id}`)}
+              >
+                <MdMessage className="w-5 h-5" />
+                Send Message
+              </Button>
+            </div>
+          ) : (
+            <div className=" text-black rounded-2xl  p-8 flex flex-col justify-center items-center max-w-xl w-full md:w-[420px] ml-0 md:ml-8">
+              {showDeclinedMessage && (
+                <div className="mb-6 text-center text-base font-medium text-white">
+                  You declined the request. Would you like to learn a new skill instead?
+                </div>
               )}
               <div className="flex gap-4">
                 <Button
                   className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-8 rounded-lg transition flex items-center gap-2 shadow"
                   onClick={() => setShowSwapModal(true)}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-5 h-5">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                  </svg>
+                  <MdSwapHoriz className="w-5 h-5" />
                   Learn from this SkillMate
                 </Button>
+                <Button
+                  className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-8 rounded-lg transition flex items-center gap-2 shadow"
+                  onClick={handleCombineSkill}
+                >
+                  <MdAdd className="w-5 h-5" />
+                  Combine Skill
+                </Button>
               </div>
-            </div>
-          )}
-          {(requestStatus === 'accepted' || (hasAcceptedRequest && requestStatus !== 'pending')) && (
-            <div className=" text-black rounded-2xl  p-8 flex flex-col items-center max-w-xl w-full md:w-[420px] ml-0 md:ml-8">
-              <Button
-                className="bg-button hover:bg-blue-700 text-white font-bold py-2 px-8 rounded-lg transition flex items-center gap-2"
-                onClick={() => navigate(`/messages/${user.id}`)}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-                Send Message
-              </Button>
             </div>
           )}
         </div>
@@ -444,10 +520,8 @@ export default function User() {
               <div className="bg-[#181f25] rounded-lg p-4 border border-gray-700">
                 <div className="flex items-center gap-3 mb-3">
                 <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
-                    <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                    </svg>
-                  </div>
+                  <MdGroups className="w-6 h-6 text-green-400" />
+                </div>
                   <div>
                     <h3 className="font-semibold text-white">Mentor Impact</h3>
                   </div>
@@ -461,9 +535,7 @@ export default function User() {
               <div className="bg-[#181f25] rounded-lg p-4 border border-gray-700">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center">
-                    <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                    </svg>
+                    <MdSchool className="w-6 h-6 text-blue-400" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-white">Learning Journey</h3>
@@ -480,10 +552,8 @@ export default function User() {
               <div className="bg-[#181f25] rounded-lg p-4 border border-gray-700">
                 <div className="flex items-center gap-3 mb-3">
                 <div className="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center">
-                <svg className="w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                    </svg>
-                  </div>
+                  <MdStar className="w-6 h-6 text-yellow-400" />
+                </div>
                   <div>
                     <h3 className="font-semibold text-white">Community Feedback</h3>
                   </div>
@@ -491,7 +561,7 @@ export default function User() {
                 <div className="flex items-center gap-2">
                   <div className="flex">
                     {[1,2,3,4,5].map(star => (
-                      <span key={star} className={star <= Math.round(user.rating || 0) ? "text-yellow-400" : "text-gray-500"}>★</span>
+                      <MdStar key={star} className={star <= Math.round(user.rating || 0) ? "text-yellow-400" : "text-gray-500"} />
                     ))}
                   </div>
                   <span className="text-md font-bold text-white">{user.rating ? user.rating.toFixed(1) : 0}/5</span>
@@ -503,9 +573,7 @@ export default function User() {
               <div className="bg-[#181f25] rounded-lg p-4 border border-gray-700">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-12 h-12 rounded-full bg-pink-500/20 flex items-center justify-center">
-                    <svg className="w-6 h-6 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
+                    <MdAccessTime className="w-6 h-6 text-pink-400" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-white">Time in Community</h3>
@@ -572,170 +640,30 @@ export default function User() {
       <Dialog open={showCombineModal} onOpenChange={setShowCombineModal}>
         <DialogContent className="bg-[#181f25] text-white border border-gray-700">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold">Request Skill Combination</DialogTitle>
+            <DialogTitle className="text-xl font-bold">Propose a Skill Combination</DialogTitle>
           </DialogHeader>
-          <div className="mt-4">
-            <form onSubmit={async (e) => {
-              e.preventDefault();
-              try {
-                const currentUser = JSON.parse(localStorage.getItem("user"));
-                await axios.post(`http://localhost:5000/skills/combine-request`, {
-                  requester_id: currentUser.id,
-                  receiver_id: id,
-                  prompt: combinePrompt,
-                });
-                setShowCombineModal(false);
-                toast.success("Combination request sent successfully!", {
-                  duration: 3000,
-                  position: "bottom-center",
-                  style: {
-                    background: "#181f25",
-                    color: "white",
-                    border: "1px solid #232e39"
-                  }
-                });
-              } catch (error) {
-                toast.error("Failed to send combination request", {
-                  duration: 3000,
-                  position: "bottom-center",
-                  style: {
-                    background: "#181f25",
-                    color: "white",
-                    border: "1px solid #232e39"
-                  }
-                });
-              }
-            }}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">Describe how you want to combine skills</label>
-                <Textarea
-                  value={combinePrompt}
-                  onChange={(e) => setCombinePrompt(e.target.value)}
-                  placeholder="Example: I want to combine your programming skills with my design skills to create a web application..."
-                  className="bg-[#232e39] text-white border-gray-700"
-                  rows={4}
-                  required
-                />
-              </div>
-              <div className="flex justify-end gap-4 mt-6">
-                <Button variant="outline" className="bg-transparent text-white border border-white cursor-pointer hover:bg-white/10 hover:text-white" onClick={() => setShowCombineModal(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" className="bg-purple-600 hover:bg-purple-700">
-                  Send Request
-                </Button>
-              </div>
-            </form>
-          </div>
+          <form onSubmit={handleSendCombineRequest} className="mt-4">
+            <label className="block text-sm font-medium mb-2">Describe your idea for combining skills</label>
+            <Textarea
+              value={combineMessage}
+              onChange={e => setCombineMessage(e.target.value)}
+              placeholder="Example: Let's combine your programming with my design to build an app..."
+              className="bg-[#232e39] text-white border-gray-700"
+              rows={4}
+              required
+            />
+            <div className="flex justify-end gap-4 mt-6">
+              <Button variant="outline" className="bg-transparent text-white border border-white cursor-pointer hover:bg-white/10 hover:text-white" onClick={() => setShowCombineModal(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" className="bg-purple-600 hover:bg-purple-700">
+                Send Request
+              </Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
 
-      {showRequestModal && (
-        <Dialog open={showRequestModal} onOpenChange={setShowRequestModal}>
-          <DialogContent className="bg-[#181f25] text-white border border-gray-700">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-bold">
-                {requestId ? (location.search.includes('combine=true') ? 'Skill Combination Request' : 'Skill Swap Request') : 'Request Skill Swap'}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="mt-4">
-              {requestId ? (
-                <div className="space-y-4">
-                  {location.search.includes('combine=true') ? (
-                    <div className="bg-[#232e39] p-4 rounded-lg">
-                      <p className="text-gray-300 mb-2">Combination request:</p>
-                      <p className="text-white">{combinePrompt}</p>
-                    </div>
-                  ) : (
-                    <div className="bg-[#232e39] p-4 rounded-lg">
-                      <p className="text-gray-300 mb-2">Requested skill:</p>
-                      <p className="text-white">{requestedSkill}</p>
-                    </div>
-                  )}
-                  <div className="flex justify-end gap-4 mt-6">
-                    <Button
-                      variant="outline"
-                      className="bg-transparent text-white border border-white cursor-pointer hover:bg-white/10 hover:text-white"
-                      onClick={() => {
-                        setShowRequestModal(false);
-                        setShowDeclinedMessage(true);
-                        axios.patch(`http://localhost:5000/skills/${location.search.includes('combine=true') ? 'combine-requests' : 'skill-requests'}/${requestId}`, {
-                          status: 'declined'
-                        })
-                        .then(() => {
-                          toast.success("Request declined", {
-                            duration: 3000,
-                            position: "bottom-center",
-                            style: {
-                              background: "#181f25",
-                              color: "white",
-                              border: "1px solid #232e39"
-                            }
-                          });
-                        });
-                      }}
-                    >
-                      Decline
-                    </Button>
-                    <Button
-                      className="bg-button hover:bg-blue-700"
-                      onClick={() => {
-                        setShowRequestModal(false);
-                        axios.patch(`http://localhost:5000/skills/${location.search.includes('combine=true') ? 'combine-requests' : 'skill-requests'}/${requestId}`, {
-                          status: 'accepted'
-                        })
-                        .then(() => {
-                          toast.success("Combination request accepted", {
-                            duration: 3000,
-                            position: "bottom-center",
-                            style: {
-                              background: "#181f25",
-                              color: "white",
-                              border: "1px solid #232e39"
-                            }
-                          });
-                        })
-                      }}
-                    >
-                      Accept
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <form onSubmit={handleRequestSubmit}>
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium mb-2">Select a skill to request</label>
-                    <Select value={requestedSkill} onValueChange={setRequestedSkill}>
-                      <SelectTrigger className="bg-[#232e39] text-white border-gray-700">
-                        <SelectValue placeholder="Select a skill" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-[#232e39] text-white border-gray-700">
-                        {user.skills.map((skill) => (
-                          <SelectItem key={skill} value={skill} className="hover:bg-[#181f25]">
-                            {skill}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex justify-end gap-4 mt-6">
-                    <Button
-                      variant="outline"
-                      className="bg-transparent text-white border border-white cursor-pointer hover:bg-white/10 hover:text-white"
-                      onClick={() => setShowRequestModal(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button type="submit" className="bg-button hover:bg-blue-700">
-                      Send Request
-                    </Button>
-                  </div>
-                </form>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
       <Toaster position="bottom-right"  />
     </div>
   );

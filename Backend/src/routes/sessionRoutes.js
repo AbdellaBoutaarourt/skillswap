@@ -21,23 +21,26 @@ router.post('/', async (req, res) => {
   } = req.body;
 
   try {
-    // Verify that the skill request exists and is accepted
-    const { data: skillRequest, error: skillRequestError } = await supabase
-      .from('skill_requests')
-      .select('*')
-      .eq('id', skill_request_id)
-      .eq('status', 'accepted')
-      .single();
 
-    if (skillRequestError || !skillRequest) {
-      return res.status(400).json({ message: 'Invalid or non-accepted skill request' });
+
+    // Verify the validity of the skill/combine request
+    if (skill_request_id) {
+      const { data: skillRequest, error: skillRequestError } = await supabase
+        .from('skill_requests')
+        .select('*')
+        .eq('id', skill_request_id)
+        .eq('status', 'accepted')
+        .single();
+      if (skillRequestError || !skillRequest) {
+        return res.status(400).json({ message: 'Invalid or non-accepted skill request' });
+      }
     }
 
     // Create the session
     const { data, error } = await supabase
       .from('sessions')
       .insert([{
-        skill_request_id,
+        skill_request_id: skill_request_id || null,
         scheduled_by,
         scheduled_with,
         date,

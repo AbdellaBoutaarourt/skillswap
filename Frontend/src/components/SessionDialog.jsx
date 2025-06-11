@@ -44,9 +44,7 @@ export default function SessionDialog({ open, onOpenChange, selectedUser, onSess
             return acc;
           }, {})
         );
-
         setAcceptedSkills(uniqueBySkill);
-
       });
   }, [open, selectedUser]);
 
@@ -56,17 +54,10 @@ export default function SessionDialog({ open, onOpenChange, selectedUser, onSess
       toast.error("Please select a date");
       return;
     }
-    if (!formData.skill_request_id) {
-      toast.error("Please select a skill");
-      return;
-    }
     setLoading(true);
-
     try {
       const user = JSON.parse(localStorage.getItem("user"));
-      // Create the session
-      const response = await axios.post("http://localhost:5000/sessions", {
-        skill_request_id: formData.skill_request_id,
+      const payload = {
         scheduled_by: user.id,
         scheduled_with: selectedUser.id,
         date: format(date, "yyyy-MM-dd"),
@@ -75,14 +66,19 @@ export default function SessionDialog({ open, onOpenChange, selectedUser, onSess
         mode: formData.mode,
         location: formData.location,
         notes: formData.notes
-      });
-
+      };
+      if (formData.skill_request_id === 'combine') {
+        payload.combine_request_id = null;
+      } else {
+        payload.skill_request_id = formData.skill_request_id;
+      }
+      const response = await axios.post("http://localhost:5000/sessions", payload);
       toast.success("Session request sent successfully!");
       onSessionScheduled(response.data);
       onOpenChange(false);
     } catch (error) {
-      console.error("Error scheduling session:", error);
-      toast.error(error.response?.data?.message || "Failed to schedule session");
+      console.log(error);
+      toast.error('Failed to schedule session');
     } finally {
       setLoading(false);
     }
@@ -113,9 +109,11 @@ export default function SessionDialog({ open, onOpenChange, selectedUser, onSess
                     <SelectItem key={req.id} value={req.id}>{req.requested_skill}</SelectItem>
                   ))
                 )}
+                <SelectItem value="combine">Skill Combination</SelectItem>
               </SelectContent>
             </Select>
           </div>
+
 
           <div className="space-y-2">
             <Label>Date</Label>
@@ -225,9 +223,23 @@ export default function SessionDialog({ open, onOpenChange, selectedUser, onSess
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading} className="bg-blue-600 font-medium hover:bg-blue-700">
-              {loading ? "Sending..." : "Send Request"}
-            </Button>
+            {formData.skill_request_id === 'combine' ? (
+              <Button
+                type="submit"
+                disabled={loading}
+                className="bg-purple-600 font-medium hover:bg-purple-700"
+              >
+                Combine Skills
+              </Button>
+            ) : (
+              <Button
+                type="submit"
+                disabled={loading}
+                className="bg-blue-600 font-medium hover:bg-blue-700"
+              >
+                {loading ? "Sending..." : "Send Request"}
+              </Button>
+            )}
           </div>
         </form>
       </DialogContent>

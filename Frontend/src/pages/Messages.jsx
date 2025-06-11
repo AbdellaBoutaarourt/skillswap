@@ -93,6 +93,22 @@ export default function Messages() {
     };
 
     fetchConversations();
+
+    const messagesChannel = supabase
+      .channel('messages-realtime-sidebar')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'messages', filter: `receiver_id=eq.${user.id}` },
+        () => {
+          fetchConversations();
+        }
+      )
+      .subscribe();
+
+
+    return () => {
+      supabase.removeChannel(messagesChannel);
+    };
   }, [user?.id, navigate, userId]);
 
   const fetchSessions = async () => {

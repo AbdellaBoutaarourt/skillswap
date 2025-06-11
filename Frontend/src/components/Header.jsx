@@ -3,6 +3,12 @@ import logo from "../assets/logo.png";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import defaultAvatar from "../assets/user.png";
 import axios from "axios";
+import { MdNotifications, MdMessage, MdPerson, MdLogout, MdArrowForward } from 'react-icons/md';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY;
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -52,12 +58,6 @@ const Header = () => {
 
     fetchNotifications();
 
-    const handleRefreshNotifications = () => {
-      fetchNotifications();
-    };
-
-    window.addEventListener('refreshNotifications', handleRefreshNotifications);
-
     const fetchUnreadMessages = async () => {
       try {
         const response = await axios.get(`http://localhost:5000/messages/count/unread/${user.id}`);
@@ -67,17 +67,46 @@ const Header = () => {
       }
     };
 
-    fetchUnreadMessages();
-    const interval = setInterval(fetchUnreadMessages, 10000);
 
-    window.addEventListener('refreshUnreadMessages', fetchUnreadMessages);
+    const skillRequestChannel = supabase
+      .channel('skill-requests-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'skill_requests', filter: `receiver_id=eq.${user.id}` },
+        () => {
+          fetchNotifications();
+        }
+      )
+      .subscribe();
+
+    const combineRequestChannel = supabase
+      .channel('combine-requests-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'skill_combine_requests', filter: `receiver_id=eq.${user.id}` },
+        () => {
+          fetchNotifications();
+        }
+      )
+      .subscribe();
+
+    const messagesChannel = supabase
+      .channel('messages-realtime-header')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'messages', filter: `receiver_id=eq.${user.id}` },
+        () => {
+          fetchUnreadMessages();
+        }
+      )
+      .subscribe();
 
     return () => {
-      window.removeEventListener('refreshNotifications', handleRefreshNotifications);
-      clearInterval(interval);
+      supabase.removeChannel(skillRequestChannel);
+      supabase.removeChannel(combineRequestChannel);
+      supabase.removeChannel(messagesChannel);
     };
   }, [user?.id]);
-
 
   function handleLogout() {
     localStorage.removeItem('user');
@@ -99,9 +128,7 @@ const Header = () => {
             <div className="flex flex-col flex-1 min-w-0">
               <div className="flex items-center gap-2 w-full">
                 <span className="font-bold text-white truncate">
-                  {(notif.requester.first_name || notif.requester.last_name)
-                    ? `${notif.requester.first_name || ''} ${notif.requester.last_name || ''}`.trim()
-                    : notif.requester.username}
+                  {`${notif.requester.first_name} ${notif.requester.last_name}`}
                 </span>
 
               </div>
@@ -130,9 +157,7 @@ const Header = () => {
                   setNotifOpen(false);
                 }}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12H9m6 0a6 6 0 11-12 0 6 6 0 0112 0zm0 0v6m0-6h6" />
-                </svg>
+                <MdArrowForward className="w-4 h-4" />
                 View profile
               </button>
             </div>
@@ -151,9 +176,7 @@ const Header = () => {
       <div className="flex items-center md:hidden gap-2">
       {user && (
           <button className="mx-2 relative cursor-pointer md:hidden" aria-label="Notifications" onClick={() => setNotifOpen(!notifOpen)}>
-            <svg width="24" height="24" fill="none" stroke="white" strokeWidth="2" viewBox="0 0 24 24">
-              <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 7.165 6 9.388 6 12v2.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
+            <MdNotifications className="w-6 h-6 text-white" />
             {notifications.length > 0 && (
               <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full px-1.5 py-0.5">
                 {notifications.length}
@@ -210,9 +233,7 @@ const Header = () => {
               to="/messages"
               className={`relative mx-2 cursor-pointer ${location.pathname === '/messages' ? 'text-blue-500' : 'text-white'}`}
             >
-              <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-              </svg>
+              <MdMessage className="w-6 h-6 text-white" />
               {unreadMessages > 0 && (
                 <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full px-1.5 py-0.5">
                   {unreadMessages}
@@ -224,9 +245,7 @@ const Header = () => {
                 setNotifOpen(!notifOpen);
                 setDropdownOpen(false);
               }}>
-                <svg width="24" height="24" fill="none" stroke="white" strokeWidth="2" viewBox="0 0 24 24">
-                  <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 7.165 6 9.388 6 12v2.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                </svg>
+                <MdNotifications className="w-6 h-6 text-white" />
                 {notifications.length > 0 && (
                   <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full px-1.5 py-0.5">
                     {notifications.length}
@@ -259,18 +278,14 @@ const Header = () => {
                     className="flex items-center px-4 py-2  hover:bg-[#232e39]"
                     onClick={() => setDropdownOpen(false)}
                   >
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                      <path d="M5.121 17.804A9 9 0 1112 21a9 9 0 01-6.879-3.196z"/>
-                    </svg>
+                    <MdPerson className="w-5 h-5 mr-2" />
                     Profile
                   </Link>
                   <button
                     onClick={handleLogout}
                     className="flex items-center w-full px-4 py-2  hover:bg-[#232e39] cursor-pointer"
                   >
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                      <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h4a2 2 0 012 2v1"/>
-                    </svg>
+                    <MdLogout className="w-5 h-5 mr-2" />
                     Logout
                   </button>
                 </div>
@@ -312,23 +327,19 @@ const Header = () => {
               <Link to="/mashups" className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-1.5 rounded-lg font-semibold focus:outline-none transition text-lg cursor-pointer" onClick={() => setMenuOpen(false)}>
                 Skill Mashups
               </Link>
-              <Link to="/messages" className="flex items-center space-x-2 px-4 py-2 text-white hover:bg-gray-800 rounded" onClick={() => setMenuOpen(false)}>
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
-                </svg>
+              <Link to="/messages" className="flex items-center space-x-2  py-2 text-white hover:bg-gray-800 rounded" onClick={() => setMenuOpen(false)}>
+                <MdMessage className="w-5 h-5 text-white" />
                 <span>Messages</span>
               </Link>
-              <Link to="/sessions" className="flex items-center space-x-2 px-4 py-2 text-white hover:bg-gray-800 rounded" onClick={() => setMenuOpen(false)}>
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m9-4V7a4 4 0 00-8 0v3m12 4v1a4 4 0 01-4 4H7a4 4 0 01-4-4v-1"/>
-                </svg>
+              <Link to="/sessions" className="flex items-center space-x-2  py-2 text-white hover:bg-gray-800 rounded" onClick={() => setMenuOpen(false)}>
+                <MdPerson className="w-5 h-5 text-white" />
                 <span>Sessions</span>
               </Link>
-              <Link to="/profile" className="flex items-center space-x-2 px-4 py-2 text-white hover:bg-gray-800 rounded" onClick={() => setMenuOpen(false)}>
+              <Link to="/profile" className="flex items-center space-x-2  py-2 text-white hover:bg-gray-800 rounded" onClick={() => setMenuOpen(false)}>
                 <img src={user.avatar || defaultAvatar} alt="profile" className="w-7 h-7 rounded-full border-2 border-blue-500 object-cover" />
                 <span>Profile</span>
               </Link>
-              <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-white hover:bg-gray-800 rounded">
+              <button onClick={handleLogout} className="w-full text-left  py-2 text-white hover:bg-gray-800 rounded">
                 Logout
               </button>
             </>

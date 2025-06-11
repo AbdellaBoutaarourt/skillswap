@@ -358,22 +358,6 @@ export default function Explore() {
                               ))}
                             </SelectContent>
                           </Select>
-                          <div className="mb-6">
-                            <span className="block text-sm mb-2">Country</span>
-                            <Select value={selectedCountry} onValueChange={setSelectedCountry}>
-                              <SelectTrigger className="w-full bg-[#181f25] border-gray-700">
-                                <SelectValue placeholder="All countries" />
-                              </SelectTrigger>
-                              <SelectContent className="bg-[#181f25] border-gray-700 max-h-60 overflow-y-auto">
-                                <SelectItem value="all" className="text-white hover:bg-[#2194F2]">All</SelectItem>
-                                {countries.map(country => (
-                                  <SelectItem key={country} value={country} className="text-white hover:bg-[#2194F2]">
-                                    {country}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
                           <DialogFooter className="mt-4">
                             <Button
                               disabled={!selectedSkill || alreadyRequested}

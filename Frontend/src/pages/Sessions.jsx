@@ -4,6 +4,7 @@ import { Button } from "../components/ui/button";
 import { useNavigate, Link } from "react-router-dom";
 import { toast,Toaster } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogClose } from "@/components/ui/dialog";
+import { MdEventNote, MdLightbulb, MdCalendarToday, MdPerson, MdAccessTime } from 'react-icons/md';
 
 const getSessionEndDate = (session) => {
   const endTime = session.end_time || session.start_time;
@@ -170,6 +171,9 @@ export default function Sessions() {
     session => !session.isMentor && (!session.rated || !session.given_rating)
   );
 
+  // Ajout helper pour détecter une session combine
+  const isCombineSession = (session) => !session.skill_request_id;
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#111B23] flex items-center justify-center">
@@ -192,9 +196,7 @@ export default function Sessions() {
     <div className="p-8 text-white min-h-screen bg-[#111B23]">
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center gap-3 mb-8">
-          <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
+          <MdEventNote className="w-8 h-8 text-blue-400" />
           <h1 className="text-3xl font-bold">My Sessions</h1>
         </div>
 
@@ -204,30 +206,28 @@ export default function Sessions() {
             <h2 className="text-xl font-semibold mb-4 text-yellow-400">Pending Requests</h2>
             <div className="space-y-4">
               {pendingSessions.map(session => (
-                <div key={session.id} className="bg-[#181f25] rounded-lg p-6 hover:bg-[#2a3744] transition-colors">
+                <div key={session.id} className={`bg-[#181f25] rounded-lg p-6 hover:bg-[#2a3744] transition-colors`}>
                   <div className="flex justify-between items-start">
                     <div className="space-y-3">
                       <div className="flex items-center gap-3">
-                        <svg className="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                        </svg>
-                        <h3 className="text-xl font-semibold text-yellow-400">{session.skill_name}</h3>
-                        <div className={`px-3 py-1 rounded-full text-sm ${session.isMentor ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}`}>
-                          {session.isMentor ? 'Teaching' : 'Learning'}
+                        {isCombineSession(session) ? (
+                          <MdLightbulb className="w-5 h-5 text-purple-400" />
+                        ) : (
+                          <MdLightbulb className="w-5 h-5 text-yellow-400" />
+                        )}
+                        <h3 className={`text-xl font-semibold ${isCombineSession(session) ? 'text-purple-300' : 'text-yellow-400'}`}>{session.skill_name || 'Skill Combination'}</h3>
+                        <div className={`px-3 py-1 rounded-full text-sm ${isCombineSession(session) ? 'bg-purple-600/20 text-purple-300' : (session.isMentor ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400')}`}>
+                          {isCombineSession(session) ? 'Combination' : (session.isMentor ? 'Teaching' : 'Learning')}
                         </div>
                       </div>
                       <div className="flex items-center gap-2 text-gray-300">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+                        <MdCalendarToday className="w-4 h-4" />
                         <span>{formatDate(session.date)}</span>
                         <span className="mx-2">•</span>
                         <span>{session.start_time?.slice(0,5)} - {session.end_time?.slice(0,5)}</span>
                       </div>
                       <div className="flex items-center gap-2 text-gray-300">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
+                        <MdPerson className="w-4 h-4" />
                         <span>With: </span>
                         <Link
                           to={`/profile/${session.scheduled_by}`}
@@ -239,10 +239,10 @@ export default function Sessions() {
                     </div>
                     <div className="flex gap-2">
                       <Button
-                        className="bg-button text-white px-10 py-1 rounded-lg font-medium"
+                        className={isCombineSession(session) ? 'bg-purple-600 hover:bg-purple-700 text-white px-10 py-1 rounded-lg font-medium' : 'bg-button text-white px-10 py-1 rounded-lg font-medium'}
                         onClick={() => handleAcceptSession(session.id)}
                       >
-                        Accept
+                        {isCombineSession(session) ? 'Accept Combination' : 'Accept'}
                       </Button>
                       <Button
                         variant="outline"
@@ -264,42 +264,37 @@ export default function Sessions() {
           <h2 className="text-xl font-semibold mb-4 text-blue-400">Upcoming Sessions</h2>
           {upcomingSessions.length === 0 ? (
             <div className="bg-[#181f25] rounded-lg p-8 text-center">
-              <svg className="w-12 h-12 text-gray-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
+              <MdEventNote className="w-12 h-12 text-gray-500 mx-auto mb-4" />
               <p className="text-gray-400 text-lg">No upcoming sessions.</p>
               <p className="text-gray-500 mt-2">Your scheduled sessions will appear here.</p>
             </div>
           ) : (
             <div className="space-y-4">
               {upcomingSessions.map(session => (
-                <div key={session.id} className="bg-[#181f25] rounded-lg p-6 hover:bg-[#2a3744] transition-colors">
+                <div key={session.id} className={`bg-[#181f25] rounded-lg p-6 hover:bg-[#2a3744] transition-colors`}>
                   <div className="flex justify-between items-start">
                     <div className="space-y-3">
                       <div className="flex items-center gap-3">
-                        <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                        </svg>
-                        <h3 className="text-xl font-semibold text-blue-400">{session.skill_name}</h3>
-                        <div className={`px-3 py-1 rounded-full text-sm ${session.isMentor ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}`}>
-                          {session.isMentor ? 'Teaching' : 'Learning'}
+                        {isCombineSession(session) ? (
+                          <MdLightbulb className="w-5 h-5 text-purple-400" />
+                        ) : (
+                          <MdLightbulb className="w-5 h-5 text-yellow-400" />
+                        )}
+                        <h3 className={`text-xl font-semibold ${isCombineSession(session) ? 'text-purple-300' : 'text-yellow-400'}`}>{session.skill_name || 'Skill Combination'}</h3>
+                        <div className={`px-3 py-1 rounded-full text-sm ${isCombineSession(session) ? 'bg-purple-600/20 text-purple-300' : (session.isMentor ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400')}`}>
+                          {isCombineSession(session) ? 'Combination' : (session.isMentor ? 'Teaching' : 'Learning')}
                         </div>
                       </div>
 
                       <div className="flex items-center gap-2 text-gray-300">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+                        <MdCalendarToday className="w-4 h-4" />
                         <span>{formatDate(session.date)}</span>
                         <span className="mx-2">•</span>
                         <span>{session.start_time?.slice(0,5)} - {session.end_time?.slice(0,5)}</span>
                       </div>
 
                       <div className="flex items-center gap-2 text-gray-300">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
+                        <MdAccessTime className="w-4 h-4" />
                         <span>{session.mode === 'online' ? 'Online Session' : 'In Person Session'}</span>
                         {session.mode === 'in_person' && session.location && (
                           <>
@@ -310,9 +305,7 @@ export default function Sessions() {
                       </div>
 
                       <div className="flex items-center gap-2 text-gray-300">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
+                        <MdPerson className="w-4 h-4" />
                         <span>With: </span>
                         <Link
                           to={`/profile/${session.scheduled_with}`}
@@ -332,9 +325,7 @@ export default function Sessions() {
                             window.location.reload();
                           }}
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                          </svg>
+                          <MdAccessTime className="w-4 h-4" />
                           Join Session
                         </Button>
                       ) : (
@@ -367,32 +358,29 @@ export default function Sessions() {
             )}
             <div className="space-y-4">
               {sortedPastSessions.map(session => (
-                <div key={session.id} className="bg-[#181f25] rounded-lg p-6 opacity-70">
+                <div key={session.id} className={`bg-[#181f25] rounded-lg p-6 opacity-70`}>
                   <div className="flex justify-between items-start">
                     <div className="space-y-3">
                       <div className="flex items-center gap-3">
-                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                        </svg>
-                        <h3 className="text-xl font-semibold text-gray-400">{session.skill_name}</h3>
-                        <div className={`px-3 py-1 rounded-full text-sm ${session.isMentor ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}`}>
-                          {session.isMentor ? 'Teaching' : 'Learning'}
+                        {isCombineSession(session) ? (
+                          <MdLightbulb className="w-5 h-5 text-purple-400" />
+                        ) : (
+                          <MdLightbulb className="w-5 h-5 text-gray-400" />
+                        )}
+                        <h3 className={`text-xl font-semibold ${isCombineSession(session) ? 'text-purple-300' : 'text-gray-400'}`}>{session.skill_name || 'Skill Combination'}</h3>
+                        <div className={`px-3 py-1 rounded-full text-sm ${isCombineSession(session) ? 'bg-purple-600/20 text-purple-300' : (session.isMentor ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400')}`}>
+                          {isCombineSession(session) ? 'Combination' : (session.isMentor ? 'Teaching' : 'Learning')}
                         </div>
 
                       </div>
                       <div className="flex items-center gap-2 text-gray-400">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+                        <MdCalendarToday className="w-4 h-4" />
                         <span>{formatDate(session.date)}</span>
                         <span className="mx-2">•</span>
                         <span>{session.start_time?.slice(0,5)} - {session.end_time?.slice(0,5)}</span>
                       </div>
                       <div className="flex items-center gap-2 text-gray-400">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
+                        <MdAccessTime className="w-4 h-4" />
                         <span>{session.mode === 'online' ? 'Online Session' : 'In Person Session'}</span>
                         {session.mode === 'in_person' && session.location && (
                           <>
@@ -402,9 +390,7 @@ export default function Sessions() {
                         )}
                       </div>
                       <div className="flex items-center gap-2 text-gray-400">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
+                        <MdPerson className="w-4 h-4" />
                         <span>With: </span>
                         <Link
                           to={`/profile/${session.scheduled_with}`}
