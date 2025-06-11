@@ -169,6 +169,31 @@ function Profile() {
     setForm(f => ({...f, location: value }));
   };
 
+  const handleShareProfile = () => {
+    const profileUrl = `${window.location.origin}/profile/${user.id}`;
+    navigator.clipboard.writeText(profileUrl).then(() => {
+      toast.success("Profile URL copied to clipboard!", {
+        duration: 3000,
+        position: "bottom-center",
+        style: {
+          background: "#181f25",
+          color: "white",
+          border: "1px solid #232e39"
+        }
+      });
+    }).catch(() => {
+      toast.error("Failed to copy URL", {
+        duration: 3000,
+        position: "bottom-center",
+        style: {
+          background: "#181f25",
+          color: "white",
+          border: "1px solid #232e39"
+        }
+      });
+    });
+  };
+
   return (
     <div className="min-h-screen bg-[#111B23] text-white flex flex-col items-center py-12 px-2">
       <div className="w-full max-w-4xl flex flex-col md:flex-row items-center md:items-start md:space-x-8 mb-8">
@@ -269,7 +294,7 @@ function Profile() {
                 </form>
               </AlertDialogContent>
             </AlertDialog>
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg px-8 py-2 h-11 text-base transition">Share profile</Button>
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg px-8 py-2 h-11 text-base transition" onClick={handleShareProfile}>Share profile</Button>
           </div>
         </div>
       </div>

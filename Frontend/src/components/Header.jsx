@@ -151,7 +151,7 @@ const Header = () => {
             <span className="text-xs text-gray-400 mb-2">Visit profile to accept or decline request</span>
             <div className="flex justify-end mt-2">
               <button
-                className="flex cursor-pointer gap-2 bg-button hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg font-semibold text-sm transition"
+                className="flex cursor-pointer gap-2 bg-button items-center hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg font-semibold text-sm transition"
                 onClick={() => {
                   navigate(`/profile/${notif.requester.id}?requestId=${notif.id}${notif.type === 'combine' ? '&combine=true' : ''}`);
                   setNotifOpen(false);
