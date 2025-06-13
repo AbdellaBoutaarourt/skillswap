@@ -112,7 +112,7 @@ const Home = () => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={handleSearch}
-                className="bg-button cursor-pointer hover:bg-blue-700 text-white font-bold rounded-lg px-6 py-2 m-2 transition hover:shadow focus:outline-none"
+                className="bg-button cursor-pointer hover:bg-blue-700 text-white font-bold rounded-lg px-6 py-2 m-2 transition hover:shadow focus:outline-none w-full sm:w-auto hidden sm:block"
               >
                 {isSearching ? 'Searching...' : 'Start learning'}
               </motion.button>

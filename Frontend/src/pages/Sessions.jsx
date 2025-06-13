@@ -216,7 +216,7 @@ export default function Sessions() {
                           <MdLightbulb className="w-5 h-5 text-yellow-400" />
                         )}
                         <h3 className={`text-xl font-semibold ${isCombineSession(session) ? 'text-purple-300' : 'text-yellow-400'}`}>{session.skill_name || 'Skill Combination'}</h3>
-                        <div className={`px-3 py-1 rounded-full text-sm ${isCombineSession(session) ? 'bg-purple-600/20 text-purple-300' : (session.isMentor ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400')}`}>
+                        <div className={`px-3 py-1 rounded-full text-sm ${isCombineSession(session) ? 'bg-purple-600/20 text-purple-300' : (session.isMentor ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400')} hidden md:inline-block`}>
                           {isCombineSession(session) ? 'Combination' : (session.isMentor ? 'Teaching' : 'Learning')}
                         </div>
                       </div>
@@ -281,7 +281,7 @@ export default function Sessions() {
                           <MdLightbulb className="w-5 h-5 text-yellow-400" />
                         )}
                         <h3 className={`text-xl font-semibold ${isCombineSession(session) ? 'text-purple-300' : 'text-yellow-400'}`}>{session.skill_name || 'Skill Combination'}</h3>
-                        <div className={`px-3 py-1 rounded-full text-sm ${isCombineSession(session) ? 'bg-purple-600/20 text-purple-300' : (session.isMentor ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400')}`}>
+                        <div className={`px-3 py-1 rounded-full text-sm ${isCombineSession(session) ? 'bg-purple-600/20 text-purple-300' : (session.isMentor ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400')} hidden md:inline-block`}>
                           {isCombineSession(session) ? 'Combination' : (session.isMentor ? 'Teaching' : 'Learning')}
                         </div>
                       </div>
@@ -368,7 +368,7 @@ export default function Sessions() {
                           <MdLightbulb className="w-5 h-5 text-gray-400" />
                         )}
                         <h3 className={`text-xl font-semibold ${isCombineSession(session) ? 'text-purple-300' : 'text-gray-400'}`}>{session.skill_name || 'Skill Combination'}</h3>
-                        <div className={`px-3 py-1 rounded-full text-sm ${isCombineSession(session) ? 'bg-purple-600/20 text-purple-300' : (session.isMentor ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400')}`}>
+                        <div className={`px-3 py-1 rounded-full text-sm ${isCombineSession(session) ? 'bg-purple-600/20 text-purple-300' : (session.isMentor ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400')} hidden md:inline-block`}>
                           {isCombineSession(session) ? 'Combination' : (session.isMentor ? 'Teaching' : 'Learning')}
                         </div>
 

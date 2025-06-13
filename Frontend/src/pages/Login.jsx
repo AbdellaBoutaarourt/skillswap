@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import axios from "axios";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -38,14 +38,21 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const [confirmationMsg, setConfirmationMsg] = useState("");
 
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
     }, 5000);
 
+    const params = new URLSearchParams(location.search);
+    if (params.get("confirmed") === "1") {
+      setConfirmationMsg("Your email has been successfully confirmed! You can now log in.");
+    }
+
     return () => clearInterval(interval);
-  }, []);
+  }, [location.search]);
 
   function validateForm() {
     const newErrors = {};
@@ -149,6 +156,15 @@ const Login = () => {
             className="space-y-6"
             onSubmit={handleSubmit}
           >
+            {confirmationMsg && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-green-400 text-center text-base font-semibold mb-2"
+              >
+                {confirmationMsg}
+              </motion.div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="email" className="text-white">Email Address</Label>
               <Input
